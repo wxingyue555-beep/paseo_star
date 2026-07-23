@@ -2128,6 +2128,7 @@ export const fr: TranslationResources = {
       codexEndpoint: {
         addTitle: "Codex-compatible endpoint",
         addDescription: "Connect Codex through CCSwitch or another Responses-compatible gateway.",
+        updateHost: "Update the host to use this.",
         add: "Add endpoint",
         title: "Add Codex endpoint",
         description: "Paseo creates a separate Codex provider profile for this endpoint.",
@@ -2139,12 +2140,10 @@ export const fr: TranslationResources = {
         apiKeyPlaceholder: "Enter the gateway API key",
         modelId: "Model ID",
         modelIdPlaceholder: "e.g. gpt-5.4",
-        modelPreset: "Model",
-        customModel: "Custom model ID",
-        noModels: "No models available",
         enable: "Enable provider",
         enableDescription: "Enabled providers are available in the new-agent model selector.",
-        saved: "{{name}} is enabled and ready to use.",
+        savedEnabled: "{{name}} is enabled and ready to use.",
+        savedDisabled: "{{name}} was saved but is currently disabled.",
         selectInComposer:
           "In a new agent, open the model selector and choose {{name}}. Do not choose the built-in Codex provider.",
         save: "Add provider",

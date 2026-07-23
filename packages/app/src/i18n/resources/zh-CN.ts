@@ -2048,6 +2048,7 @@ export const zhCN: TranslationResources = {
       codexEndpoint: {
         addTitle: "兼容 Codex 的端点",
         addDescription: "通过 CCSwitch 或其他兼容 Responses API 的网关连接 Codex。",
+        updateHost: "请更新 Host 以使用此功能。",
         add: "添加端点",
         title: "添加 Codex 端点",
         description: "Paseo 将为此端点创建独立的 Codex Provider 配置。",
@@ -2059,12 +2060,10 @@ export const zhCN: TranslationResources = {
         apiKeyPlaceholder: "输入网关 API 密钥",
         modelId: "模型 ID",
         modelIdPlaceholder: "例如：gpt-5.4",
-        modelPreset: "模型",
-        customModel: "自定义模型 ID",
-        noModels: "没有可用模型",
         enable: "启用 Provider",
         enableDescription: "启用后的 Provider 会出现在新建 Agent 的模型选择器中。",
-        saved: "{{name}} 已启用，可以使用。",
+        savedEnabled: "{{name}} 已启用，可以使用。",
+        savedDisabled: "{{name}} 已保存，但目前处于禁用状态。",
         selectInComposer:
           "新建 Agent 时，打开模型选择器并选择 {{name}}。不要选择内置 Codex Provider。",
         save: "添加 Provider",

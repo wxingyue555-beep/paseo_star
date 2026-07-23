@@ -318,6 +318,8 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
   const { t } = useTranslation();
   const isConnected = useHostRuntimeIsConnected(serverId);
   const supportsProviderRemoval = useHostFeature(serverId, "providerRemoval");
+  // COMPAT(codexEndpointProfiles): added in v0.1.X, drop the gate when floor >= v0.1.X.
+  const supportsCodexEndpointProfiles = useHostFeature(serverId, "codexEndpointProfiles");
   const { entries, isLoading, refresh } = useProvidersSnapshot(serverId);
   const { patchConfig } = useDaemonConfig(serverId);
   const openProviderSettings = useProviderSettingsStore((state) => state.open);
@@ -465,17 +467,23 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
                 {t("settings.providers.codexEndpoint.addTitle")}
               </Text>
               <Text style={styles.codexEndpointDescription}>
-                {t("settings.providers.codexEndpoint.addDescription")}
+                {t(
+                  supportsCodexEndpointProfiles
+                    ? "settings.providers.codexEndpoint.addDescription"
+                    : "settings.providers.codexEndpoint.updateHost",
+                )}
               </Text>
             </View>
-            <Button
-              variant="secondary"
-              size="sm"
-              onPress={handleOpenCodexEndpointProfile}
-              testID="add-codex-endpoint-profile"
-            >
-              {t("settings.providers.codexEndpoint.add")}
-            </Button>
+            {supportsCodexEndpointProfiles ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={handleOpenCodexEndpointProfile}
+                testID="add-codex-endpoint-profile"
+              >
+                {t("settings.providers.codexEndpoint.add")}
+              </Button>
+            ) : null}
           </View>
           <ProviderCatalogList
             serverId={serverId}
@@ -484,11 +492,13 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
           />
         </SettingsSection>
       ) : null}
-      <CodexEndpointProfileSheet
-        serverId={serverId}
-        visible={codexEndpointProfileOpen}
-        onClose={handleCloseCodexEndpointProfile}
-      />
+      {supportsCodexEndpointProfiles ? (
+        <CodexEndpointProfileSheet
+          serverId={serverId}
+          visible={codexEndpointProfileOpen}
+          onClose={handleCloseCodexEndpointProfile}
+        />
+      ) : null}
     </>
   );
 }

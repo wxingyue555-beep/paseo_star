@@ -1,5 +1,3 @@
-import type { ProviderOverride } from "@getpaseo/protocol/provider-config";
-
 export interface CodexEndpointProfileInput {
   name: string;
   baseUrl: string;
@@ -17,7 +15,14 @@ export interface CodexEndpointProfileErrors {
 }
 
 export type CodexEndpointProfileResult =
-  | { providerId: string; config: ProviderOverride }
+  | {
+      profileId: string;
+      label: string;
+      baseUrl: string;
+      apiKey: string;
+      models: Array<{ id: string; label: string }>;
+      enabled: boolean;
+    }
   | { errors: CodexEndpointProfileErrors };
 
 function normalizeBaseUrl(value: string): string | null {
@@ -65,17 +70,11 @@ export function buildCodexEndpointProfile(
   if (!name || !baseUrl || !apiKey || !modelId) return { errors };
 
   return {
-    providerId: createProviderId(name, input.existingProviderIds),
-    config: {
-      extends: "codex",
-      enabled: input.enabled ?? true,
-      label: name,
-      description: `Codex via ${name}`,
-      env: {
-        OPENAI_BASE_URL: baseUrl,
-        OPENAI_API_KEY: apiKey,
-      },
-      models: [{ id: modelId, label: modelId, isDefault: true }],
-    },
+    profileId: createProviderId(name, input.existingProviderIds),
+    label: name,
+    baseUrl,
+    apiKey,
+    models: [{ id: modelId, label: modelId }],
+    enabled: input.enabled ?? true,
   };
 }

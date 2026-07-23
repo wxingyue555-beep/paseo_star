@@ -7,41 +7,47 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProviderSnapshotEntry } from "@getpaseo/protocol/agent-types";
 import type { MutableDaemonConfig } from "@getpaseo/protocol/messages";
 
-const { theme, snapshotState, configState, patchConfigMock, openProviderSettingsMock } = vi.hoisted(
-  () => ({
-    theme: {
-      spacing: { 1: 4, "1.5": 6, 2: 8, 3: 12, 4: 16, 6: 24 },
-      iconSize: { sm: 14, md: 20 },
-      fontSize: { xs: 11, sm: 13, base: 15 },
-      fontWeight: { normal: "400" },
-      borderRadius: { lg: 8 },
-      opacity: { 50: 0.5 },
-      colors: {
-        surface1: "#111",
-        surface2: "#222",
-        surface3: "#333",
-        foreground: "#fff",
-        foregroundMuted: "#aaa",
-        border: "#555",
-        accent: "#0a84ff",
-        statusSuccess: "#00ff00",
-        statusWarning: "#ff9500",
-        statusDanger: "#ff0000",
-        palette: { red: { 300: "#ff6b6b" }, white: "#fff" },
-      },
+const {
+  theme,
+  snapshotState,
+  configState,
+  patchConfigMock,
+  openProviderSettingsMock,
+  hostFeatures,
+} = vi.hoisted(() => ({
+  theme: {
+    spacing: { 1: 4, "1.5": 6, 2: 8, 3: 12, 4: 16, 6: 24 },
+    iconSize: { sm: 14, md: 20 },
+    fontSize: { xs: 11, sm: 13, base: 15 },
+    fontWeight: { normal: "400" },
+    borderRadius: { lg: 8 },
+    opacity: { 50: 0.5 },
+    colors: {
+      surface1: "#111",
+      surface2: "#222",
+      surface3: "#333",
+      foreground: "#fff",
+      foregroundMuted: "#aaa",
+      border: "#555",
+      accent: "#0a84ff",
+      statusSuccess: "#00ff00",
+      statusWarning: "#ff9500",
+      statusDanger: "#ff0000",
+      palette: { red: { 300: "#ff6b6b" }, white: "#fff" },
     },
-    snapshotState: {
-      entries: undefined as ProviderSnapshotEntry[] | undefined,
-      isLoading: false,
-      isRefreshing: false,
-    },
-    configState: {
-      config: null as MutableDaemonConfig | null,
-    },
-    patchConfigMock: vi.fn(async () => undefined),
-    openProviderSettingsMock: vi.fn(),
-  }),
-);
+  },
+  snapshotState: {
+    entries: undefined as ProviderSnapshotEntry[] | undefined,
+    isLoading: false,
+    isRefreshing: false,
+  },
+  configState: {
+    config: null as MutableDaemonConfig | null,
+  },
+  patchConfigMock: vi.fn(async () => undefined),
+  openProviderSettingsMock: vi.fn(),
+  hostFeatures: { codexEndpointProfiles: true },
+}));
 
 vi.mock("react-native", () => ({
   View: ({ children, testID }: { children?: React.ReactNode; testID?: string }) =>
@@ -126,6 +132,7 @@ vi.mock("react-i18next", () => ({
             "This deletes the provider entry from config.json. It cannot be undone.",
           "settings.providers.remove.confirm": "Remove",
           "settings.providers.remove.errorTitle": "Unable to remove provider",
+          "settings.providers.codexEndpoint.updateHost": "Update the host to use this.",
         })[key] ?? key
       )
         .replaceAll("{{name}}", String(values?.name ?? ""))
@@ -294,7 +301,8 @@ vi.mock("@/runtime/host-runtime", () => ({
 }));
 
 vi.mock("@/runtime/host-features", () => ({
-  useHostFeature: () => false,
+  useHostFeature: (_serverId: string, feature: string) =>
+    feature === "codexEndpointProfiles" && hostFeatures.codexEndpointProfiles,
 }));
 
 vi.mock("@/utils/confirm-dialog", () => ({
@@ -371,6 +379,7 @@ describe("ProvidersSection", () => {
     patchConfigMock.mockReset();
     patchConfigMock.mockResolvedValue(undefined);
     openProviderSettingsMock.mockReset();
+    hostFeatures.codexEndpointProfiles = true;
   });
 
   afterEach(() => {
@@ -505,5 +514,16 @@ describe("ProvidersSection", () => {
     });
 
     expect(sheet?.getAttribute("data-visible")).toBe("true");
+  });
+
+  it("requires a host update before exposing Codex endpoint configuration", () => {
+    snapshotState.entries = [claudeEntry];
+    configState.config = makeConfig();
+    hostFeatures.codexEndpointProfiles = false;
+
+    render();
+
+    expect(container?.querySelector('[data-testid="add-codex-endpoint-profile"]')).toBeNull();
+    expect(container?.textContent).toContain("Update the host to use this.");
   });
 });

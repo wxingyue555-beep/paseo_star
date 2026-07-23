@@ -1,26 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore, type ReactElement } from "react";
 import { Text, View } from "react-native";
 import { StyleSheet } from "react-native-unistyles";
 import { useTranslation } from "react-i18next";
 import { AdaptiveModalSheet, type SheetHeader } from "@/components/adaptive-modal-sheet";
 import { Field, FormTextInput } from "@/components/ui/form-field";
 import { Button } from "@/components/ui/button";
-import { SelectField, type SelectFieldOption } from "@/components/ui/select-field";
 import { Switch } from "@/components/ui/switch";
-import { useDaemonConfig } from "@/hooks/use-daemon-config";
 import { useProvidersSnapshot } from "@/hooks/use-providers-snapshot";
-import {
-  buildCodexEndpointProfile,
-  type CodexEndpointProfileErrors,
-} from "./codex-endpoint-profile";
+import { useHostRuntimeClient } from "@/runtime/host-runtime";
+import type { CodexEndpointProfileErrors } from "./codex-endpoint-profile";
+import { useCodexEndpointProfileForm } from "./use-codex-endpoint-profile-form";
 
 interface CodexEndpointProfileSheetProps {
   serverId: string;
   visible: boolean;
   onClose: () => void;
 }
-
-const EMPTY_FORM = { name: "", baseUrl: "", apiKey: "", modelId: "", enabled: true };
 
 function errorMessage(
   errors: CodexEndpointProfileErrors,
@@ -38,125 +33,78 @@ export function CodexEndpointProfileSheet({
   serverId,
   visible,
   onClose,
-}: CodexEndpointProfileSheetProps) {
+}: CodexEndpointProfileSheetProps): ReactElement | null {
+  if (!visible) return null;
+
+  return <CodexEndpointProfileSheetContent key={serverId} serverId={serverId} onClose={onClose} />;
+}
+
+function CodexEndpointProfileSheetContent({
+  serverId,
+  onClose,
+}: Omit<CodexEndpointProfileSheetProps, "visible">) {
   const { t } = useTranslation();
   const { entries, refresh } = useProvidersSnapshot(serverId);
-  const { patchConfig } = useDaemonConfig(serverId);
-  const modelPresetOptions = useMemo<SelectFieldOption<string>[]>(
-    () => [
-      { id: "gpt-5.4", value: "gpt-5.4", label: "gpt-5.4" },
-      { id: "gpt-5.3-codex", value: "gpt-5.3-codex", label: "gpt-5.3-codex" },
-      { id: "gpt-5.2-codex", value: "gpt-5.2-codex", label: "gpt-5.2-codex" },
-      { id: "custom", value: "", label: t("settings.providers.codexEndpoint.customModel") },
-    ],
-    [t],
-  );
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [errors, setErrors] = useState<CodexEndpointProfileErrors>({});
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [savedProvider, setSavedProvider] = useState<{ id: string; label: string } | null>(null);
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!visible) return;
-    setForm(EMPTY_FORM);
-    setErrors({});
-    setSaveError(null);
-    setSavedProvider(null);
-    setSaving(false);
-  }, [visible]);
-
-  const updateField = useCallback(
-    <K extends keyof typeof EMPTY_FORM>(field: K, value: (typeof EMPTY_FORM)[K]) => {
-      setForm((current) => ({ ...current, [field]: value }));
-      setErrors((current) => ({ ...current, [field]: undefined }));
-      setSaveError(null);
-    },
-    [],
-  );
-  const handleNameChange = useCallback(
-    (value: string) => updateField("name", value),
-    [updateField],
-  );
-  const handleBaseUrlChange = useCallback(
-    (value: string) => updateField("baseUrl", value),
-    [updateField],
-  );
-  const handleApiKeyChange = useCallback(
-    (value: string) => updateField("apiKey", value),
-    [updateField],
-  );
-  const handleModelIdChange = useCallback(
-    (value: string) => updateField("modelId", value),
-    [updateField],
-  );
-  const handleEnabledChange = useCallback(
-    (value: boolean) => updateField("enabled", value),
-    [updateField],
-  );
-  const handleModelPresetChange = useCallback(
-    (value: string) => {
-      if (value) updateField("modelId", value);
-    },
-    [updateField],
-  );
+  const client = useHostRuntimeClient(serverId);
+  const existingProviderIds = new Set(entries?.map((entry) => entry.provider) ?? []);
+  const model = useCodexEndpointProfileForm(existingProviderIds);
+  const form = useSyncExternalStore(model.subscribe, model.getState, model.getState);
 
   const handleSave = useCallback(() => {
-    if (saving) return;
-    const result = buildCodexEndpointProfile({
-      ...form,
-      existingProviderIds: new Set(entries?.map((entry) => entry.provider) ?? []),
-    });
-    if ("errors" in result) {
-      setErrors(result.errors);
+    if (form.saving) return;
+    const result = model.prepareSave();
+    if (!result) return;
+
+    if (!client) {
+      model.setSaveError(t("workspace.terminal.hostDisconnected"));
       return;
     }
 
-    setSaving(true);
-    void patchConfig({ providers: { [result.providerId]: result.config } })
-      .then(() => refresh([result.providerId]))
+    model.setSaving(true);
+    void client
+      .saveCodexEndpointProfile(result)
+      .then(() => refresh([result.profileId]))
       .then(() =>
-        setSavedProvider({
-          id: result.providerId,
-          label: result.config.label ?? result.providerId,
+        model.markSaved({
+          id: result.profileId,
+          label: result.label,
+          enabled: result.enabled,
         }),
       )
       .catch((error) => {
-        setSaveError(error instanceof Error ? error.message : t("common.errors.unableToSave"));
+        model.setSaveError(
+          error instanceof Error ? error.message : t("common.errors.unableToSave"),
+        );
       })
-      .finally(() => setSaving(false));
-  }, [entries, form, patchConfig, refresh, saving, t]);
+      .finally(() => model.setSaving(false));
+  }, [client, form.saving, model, refresh, t]);
 
   const header = useMemo<SheetHeader>(
     () => ({ title: t("settings.providers.codexEndpoint.title") }),
     [t],
   );
-  const selectedModelPresetDisplay = useMemo(() => {
-    const preset = modelPresetOptions.find((option) => option.value === form.modelId);
-    return {
-      label: preset
-        ? form.modelId || t("settings.providers.codexEndpoint.customModel")
-        : t("settings.providers.codexEndpoint.customModel"),
-    };
-  }, [form.modelId, modelPresetOptions, t]);
-
   return (
     <AdaptiveModalSheet
       header={header}
-      visible={visible}
+      visible
       onClose={onClose}
       desktopMaxWidth={480}
       testID="codex-endpoint-profile-sheet"
     >
       <View style={styles.body}>
-        {savedProvider ? (
+        {form.savedProvider ? (
           <>
             <Text style={styles.success}>
-              {t("settings.providers.codexEndpoint.saved", { name: savedProvider.label })}
+              {t(
+                form.savedProvider.enabled
+                  ? "settings.providers.codexEndpoint.savedEnabled"
+                  : "settings.providers.codexEndpoint.savedDisabled",
+                { name: form.savedProvider.label },
+              )}
             </Text>
             <Text style={styles.description}>
               {t("settings.providers.codexEndpoint.selectInComposer", {
-                name: savedProvider.label,
+                name: form.savedProvider.label,
               })}
             </Text>
             <View style={styles.actions}>
@@ -177,76 +125,59 @@ export function CodexEndpointProfileSheet({
             </Text>
             <Field
               label={t("settings.providers.codexEndpoint.name")}
-              error={errorMessage(errors, "name", t)}
+              error={errorMessage(form.errors, "name", t)}
             >
               <FormTextInput
                 value={form.name}
-                onChangeText={handleNameChange}
+                onChangeText={model.setName}
                 placeholder={t("settings.providers.codexEndpoint.namePlaceholder")}
                 autoCapitalize="words"
                 autoCorrect={false}
-                editable={!saving}
+                editable={!form.saving}
                 testID="codex-endpoint-profile-name"
               />
             </Field>
             <Field
               label={t("settings.providers.codexEndpoint.baseUrl")}
-              error={errorMessage(errors, "baseUrl", t)}
+              error={errorMessage(form.errors, "baseUrl", t)}
             >
               <FormTextInput
                 value={form.baseUrl}
-                onChangeText={handleBaseUrlChange}
+                onChangeText={model.setBaseUrl}
                 placeholder={t("settings.providers.codexEndpoint.baseUrlPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
-                editable={!saving}
+                editable={!form.saving}
                 testID="codex-endpoint-profile-base-url"
               />
             </Field>
             <Field
               label={t("settings.providers.codexEndpoint.apiKey")}
-              error={errorMessage(errors, "apiKey", t)}
+              error={errorMessage(form.errors, "apiKey", t)}
             >
               <FormTextInput
                 value={form.apiKey}
-                onChangeText={handleApiKeyChange}
+                onChangeText={model.setApiKey}
                 placeholder={t("settings.providers.codexEndpoint.apiKeyPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
                 secureTextEntry
-                editable={!saving}
+                editable={!form.saving}
                 testID="codex-endpoint-profile-api-key"
               />
             </Field>
-            <SelectField
-              label={t("settings.providers.codexEndpoint.modelPreset")}
-              value={
-                modelPresetOptions.some((option) => option.value === form.modelId)
-                  ? form.modelId
-                  : ""
-              }
-              selectedDisplay={selectedModelPresetDisplay}
-              options={modelPresetOptions}
-              onChange={handleModelPresetChange}
-              placeholder={t("settings.providers.codexEndpoint.modelPreset")}
-              emptyText={t("settings.providers.codexEndpoint.noModels")}
-              disabled={saving}
-              searchable
-              title={t("settings.providers.codexEndpoint.modelPreset")}
-              triggerTestID="codex-endpoint-profile-model-preset"
-            />
             <Field
               label={t("settings.providers.codexEndpoint.modelId")}
-              error={errorMessage(errors, "modelId", t)}
+              error={errorMessage(form.errors, "modelId", t)}
             >
               <FormTextInput
                 value={form.modelId}
-                onChangeText={handleModelIdChange}
+                onChangeText={model.setModelId}
                 placeholder={t("settings.providers.codexEndpoint.modelIdPlaceholder")}
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!saving}
+                editable={!form.saving}
                 onSubmitEditing={handleSave}
                 testID="codex-endpoint-profile-model-id"
               />
@@ -262,25 +193,25 @@ export function CodexEndpointProfileSheet({
               </View>
               <Switch
                 value={form.enabled}
-                onValueChange={handleEnabledChange}
-                disabled={saving}
+                onValueChange={model.setEnabled}
+                disabled={form.saving}
                 accessibilityLabel={t("settings.providers.codexEndpoint.enable")}
                 testID="codex-endpoint-profile-enabled"
               />
             </View>
-            {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+            {form.saveError ? <Text style={styles.error}>{form.saveError}</Text> : null}
             <View style={styles.actions}>
-              <Button variant="secondary" size="sm" onPress={onClose} disabled={saving}>
+              <Button variant="secondary" size="sm" onPress={onClose} disabled={form.saving}>
                 {t("common.actions.cancel")}
               </Button>
               <Button
                 variant="default"
                 size="sm"
                 onPress={handleSave}
-                disabled={saving}
+                disabled={form.saving}
                 testID="codex-endpoint-profile-save"
               >
-                {saving
+                {form.saving
                   ? t("settings.providers.codexEndpoint.saving")
                   : t("settings.providers.codexEndpoint.save")}
               </Button>
