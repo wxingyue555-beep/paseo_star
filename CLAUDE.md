@@ -19,6 +19,8 @@ This is an npm workspace monorepo:
 
 `docs/` is the source of truth for system-level and process-level knowledge. **"The docs", "check the docs", or "check the X docs" always mean this directory — not the web.** Look here before fetching anything online; the docs capture gotchas and conventions you cannot derive from the code or external sources.
 
+Read `PROJECT_MEMORY.md` after this file at the start of every task. It contains user-specific local collaboration context; never record secrets in it.
+
 At the start of non-trivial work, list `docs/` and skim anything relevant to the task. When you learn something meta worth preserving — a gotcha, a convention, a workflow, a piece of system context that will outlive the current task — update an existing doc or propose a new one. Code-level facts belong in inline comments next to the code; system, process, and gotcha-level facts belong in `docs/`.
 
 | Doc                                                                | What's in it                                                                                                                   |
