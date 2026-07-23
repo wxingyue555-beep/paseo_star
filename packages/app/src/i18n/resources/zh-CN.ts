@@ -2065,6 +2065,8 @@ export const zhCN: TranslationResources = {
         apiKeyPlaceholder: "输入网关 API 密钥",
         modelId: "模型 ID",
         modelIdPlaceholder: "例如：gpt-5.4",
+        reasoningEfforts: "推理强度",
+        reasoningEffortsPlaceholder: "例如：low, medium, high, xhigh",
         enable: "启用 Provider",
         enableDescription: "启用后的 Provider 会出现在新建 Agent 的模型选择器中。",
         savedEnabled: "{{name}} 已启用，可以使用。",

@@ -193,7 +193,7 @@ Paseo passes those variables through to the Codex app-server process **and** map
 
 ### Setup
 
-In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Enter the gateway's exact model ID, then keep **Enable provider** on unless you intentionally want to hide it. Paseo stores the resulting custom provider in its host config; in a new agent, open the model selector and select that new profile instead of the built-in Codex provider. Selecting built-in Codex still routes to `api.openai.com`.
+In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Enter the gateway's exact model ID, then keep **Enable provider** on unless you intentionally want to hide it. If the gateway supports `model_reasoning_effort`, enter its supported values as a comma-separated list (for example, `low, medium, high, xhigh`). Paseo stores those values with the model, and the composer shows them as the reasoning selector. Leave the field blank when the gateway does not support reasoning efforts. In a new agent, open the model selector and select that new profile instead of the built-in Codex provider. Selecting built-in Codex still routes to `api.openai.com`.
 
 ```json
 {
@@ -207,7 +207,18 @@ In the app, open **Host Settings → Providers → Add provider**, then choose *
           "OPENAI_API_KEY": "sk-...",
           "OPENAI_BASE_URL": "https://custom-relay.example.com"
         },
-        "models": [{ "id": "custom-model", "label": "Custom Model", "isDefault": true }]
+        "models": [
+          {
+            "id": "custom-model",
+            "label": "Custom Model",
+            "isDefault": true,
+            "thinkingOptions": [
+              { "id": "low", "label": "low", "isDefault": true },
+              { "id": "medium", "label": "medium" },
+              { "id": "high", "label": "high" }
+            ]
+          }
+        ]
       }
     }
   }

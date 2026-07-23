@@ -31,7 +31,11 @@ export interface SaveCodexEndpointProfileInput {
   label: string;
   baseUrl: string;
   apiKey?: string;
-  models: Array<{ id: string; label?: string }>;
+  models: Array<{
+    id: string;
+    label?: string;
+    thinkingOptions?: Array<{ id: string; label?: string; isDefault?: boolean }>;
+  }>;
   enabled?: boolean;
 }
 
@@ -39,7 +43,12 @@ export interface SavedCodexEndpointProfile {
   id: string;
   label: string;
   baseUrl: string;
-  models: Array<{ id: string; label: string; isDefault?: boolean }>;
+  models: Array<{
+    id: string;
+    label: string;
+    isDefault?: boolean;
+    thinkingOptions?: Array<{ id: string; label: string; isDefault?: boolean }>;
+  }>;
   enabled: boolean;
   hasApiKey: boolean;
 }
@@ -261,11 +270,26 @@ export class DaemonConfigStore {
     }
 
     const baseUrl = normalizeCodexEndpointBaseUrl(input.baseUrl);
-    const models = input.models.map((model, index) => ({
-      id: model.id,
-      label: model.label?.trim() || model.id,
-      ...(index === 0 ? { isDefault: true } : {}),
-    }));
+    const models = input.models.map((model, index) => {
+      const defaultThinkingOptionId = model.thinkingOptions?.find((option) => option.isDefault)?.id;
+      return {
+        id: model.id,
+        label: model.label?.trim() || model.id,
+        ...(index === 0 ? { isDefault: true } : {}),
+        ...(model.thinkingOptions?.length
+          ? {
+              thinkingOptions: model.thinkingOptions.map((option, optionIndex) => ({
+                id: option.id,
+                label: option.label?.trim() || option.id,
+                ...(option.id === defaultThinkingOptionId ||
+                (!defaultThinkingOptionId && optionIndex === 0)
+                  ? { isDefault: true }
+                  : {}),
+              })),
+            }
+          : {}),
+      };
+    });
     const apiKey = input.apiKey ?? existing?.env?.OPENAI_API_KEY;
     const providerOverride: ProviderOverride = {
       ...existing,

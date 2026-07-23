@@ -2091,6 +2091,8 @@ export const ar: TranslationResources = {
         apiKeyPlaceholder: "Enter the gateway API key",
         modelId: "Model ID",
         modelIdPlaceholder: "e.g. gpt-5.4",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         enable: "Enable provider",
         enableDescription: "Enabled providers are available in the new-agent model selector.",
         savedEnabled: "{{name}} is enabled and ready to use.",

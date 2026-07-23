@@ -569,7 +569,12 @@ describe("DaemonConfigStore", () => {
       label: "Gateway Codex",
       baseUrl: "https://gateway.example",
       apiKey: "test-secret-must-not-roundtrip",
-      models: [{ id: "gateway-model" }],
+      models: [
+        {
+          id: "gateway-model",
+          thinkingOptions: [{ id: "low" }, { id: "high", isDefault: true }],
+        },
+      ],
     });
 
     const persisted = loadPersistedConfig(paseoHome);
@@ -577,7 +582,17 @@ describe("DaemonConfigStore", () => {
       id: "gateway-codex",
       label: "Gateway Codex",
       baseUrl: "https://gateway.example/v1",
-      models: [{ id: "gateway-model", label: "gateway-model", isDefault: true }],
+      models: [
+        {
+          id: "gateway-model",
+          label: "gateway-model",
+          isDefault: true,
+          thinkingOptions: [
+            { id: "low", label: "low" },
+            { id: "high", label: "high", isDefault: true },
+          ],
+        },
+      ],
       enabled: true,
       hasApiKey: true,
     });

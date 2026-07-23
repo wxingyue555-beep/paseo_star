@@ -1177,6 +1177,16 @@ export const SetDaemonConfigRequestMessageSchema = z.object({
 const CodexEndpointProfileModelSchema = z.object({
   id: z.string().trim().min(1).max(256),
   label: z.string().trim().min(1).max(256).optional(),
+  thinkingOptions: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(128),
+        label: z.string().trim().min(1).max(128).optional(),
+        isDefault: z.boolean().optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
 });
 
 export const ProviderCodexEndpointSaveRequestSchema = z.object({
@@ -3803,6 +3813,15 @@ export const ProviderCodexEndpointSaveResponseSchema = z.object({
           id: z.string(),
           label: z.string(),
           isDefault: z.boolean().optional(),
+          thinkingOptions: z
+            .array(
+              z.object({
+                id: z.string(),
+                label: z.string(),
+                isDefault: z.boolean().optional(),
+              }),
+            )
+            .optional(),
         }),
       ),
       enabled: z.boolean(),

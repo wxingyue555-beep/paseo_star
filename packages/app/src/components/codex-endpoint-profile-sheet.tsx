@@ -182,6 +182,17 @@ function CodexEndpointProfileSheetContent({
                 testID="codex-endpoint-profile-model-id"
               />
             </Field>
+            <Field label={t("settings.providers.codexEndpoint.reasoningEfforts")}>
+              <FormTextInput
+                value={form.reasoningEfforts}
+                onChangeText={model.setReasoningEfforts}
+                placeholder={t("settings.providers.codexEndpoint.reasoningEffortsPlaceholder")}
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!form.saving}
+                testID="codex-endpoint-profile-reasoning-efforts"
+              />
+            </Field>
             <View style={styles.enabledRow}>
               <View style={styles.enabledCopy}>
                 <Text style={styles.enabledLabel}>

@@ -137,7 +137,12 @@ describe("Codex endpoint profile protocol", () => {
       label: "Gateway Codex",
       baseUrl: "https://gateway.example/v1",
       apiKey: "test-secret-must-not-roundtrip",
-      models: [{ id: "gateway-model" }],
+      models: [
+        {
+          id: "gateway-model",
+          thinkingOptions: [{ id: "low" }, { id: "high" }],
+        },
+      ],
     });
     const response = ProviderCodexEndpointSaveResponseSchema.parse({
       type: "provider.codex_endpoint.save.response",

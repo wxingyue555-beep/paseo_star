@@ -173,7 +173,12 @@ test("saves a Codex endpoint through the write-only profile RPC", async () => {
     label: "CCSwitch Work",
     baseUrl: "https://ccswitch.example.com",
     apiKey: "test-secret-must-not-roundtrip",
-    models: [{ id: "gateway-model" }],
+    models: [
+      {
+        id: "gateway-model",
+        thinkingOptions: [{ id: "low" }, { id: "high" }],
+      },
+    ],
     enabled: true,
   });
 
@@ -182,7 +187,12 @@ test("saves a Codex endpoint through the write-only profile RPC", async () => {
     label: "CCSwitch Work",
     baseUrl: "https://ccswitch.example.com",
     apiKey: "test-secret-must-not-roundtrip",
-    models: [{ id: "gateway-model" }],
+    models: [
+      {
+        id: "gateway-model",
+        thinkingOptions: [{ id: "low" }, { id: "high" }],
+      },
+    ],
     enabled: true,
   });
   expect(messages).toEqual([
