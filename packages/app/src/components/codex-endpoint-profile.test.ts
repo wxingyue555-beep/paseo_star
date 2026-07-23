@@ -10,7 +10,6 @@ describe("buildCodexEndpointProfile", () => {
         baseUrl: "https://ccswitch.example.com/",
         apiKey: "test-key",
         modelId: "gpt-5.4",
-        reasoningEfforts: "low, medium, high, xhigh",
         existingProviderIds: new Set(["codex"]),
       }),
     ).toEqual({
@@ -18,18 +17,7 @@ describe("buildCodexEndpointProfile", () => {
       label: "CCSwitch Work",
       baseUrl: "https://ccswitch.example.com",
       apiKey: "test-key",
-      models: [
-        {
-          id: "gpt-5.4",
-          label: "gpt-5.4",
-          thinkingOptions: [
-            { id: "low", label: "low", isDefault: true },
-            { id: "medium", label: "medium" },
-            { id: "high", label: "high" },
-            { id: "xhigh", label: "xhigh" },
-          ],
-        },
-      ],
+      models: [{ id: "gpt-5.4", label: "gpt-5.4" }],
       enabled: true,
     });
   });
@@ -100,23 +88,13 @@ describe("openCodexEndpointProfileForm", () => {
     form.setBaseUrl("https://ccswitch.example.com/");
     form.setApiKey("test-key");
     form.setModelId("gpt-5.6-terra");
-    form.setReasoningEfforts("low, high, high");
 
     expect(form.prepareSave()).toEqual({
       profileId: "ccswitch-work",
       label: "CCSwitch Work",
       baseUrl: "https://ccswitch.example.com",
       apiKey: "test-key",
-      models: [
-        {
-          id: "gpt-5.6-terra",
-          label: "gpt-5.6-terra",
-          thinkingOptions: [
-            { id: "low", label: "low", isDefault: true },
-            { id: "high", label: "high" },
-          ],
-        },
-      ],
+      models: [{ id: "gpt-5.6-terra", label: "gpt-5.6-terra" }],
       enabled: true,
     });
   });

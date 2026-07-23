@@ -3,7 +3,6 @@ export interface CodexEndpointProfileInput {
   baseUrl: string;
   apiKey: string;
   modelId: string;
-  reasoningEfforts?: string;
   enabled?: boolean;
   existingProviderIds: ReadonlySet<string>;
 }
@@ -24,7 +23,6 @@ export type CodexEndpointProfileResult =
       models: Array<{
         id: string;
         label: string;
-        thinkingOptions?: Array<{ id: string; label: string; isDefault?: boolean }>;
       }>;
       enabled: boolean;
     }
@@ -64,14 +62,6 @@ export function buildCodexEndpointProfile(
   const baseUrl = normalizeBaseUrl(input.baseUrl);
   const apiKey = input.apiKey.trim();
   const modelId = input.modelId.trim();
-  const reasoningEfforts = Array.from(
-    new Set(
-      (input.reasoningEfforts ?? "")
-        .split(",")
-        .map((effort) => effort.trim())
-        .filter(Boolean),
-    ),
-  );
   const errors: CodexEndpointProfileErrors = {
     ...(name ? {} : { name: "required" }),
     ...(baseUrl ? {} : { baseUrl: "invalid" }),
@@ -91,13 +81,6 @@ export function buildCodexEndpointProfile(
       {
         id: modelId,
         label: modelId,
-        ...(reasoningEfforts.length > 0
-          ? {
-              thinkingOptions: reasoningEfforts.map((id, index) =>
-                index === 0 ? { id, label: id, isDefault: true } : { id, label: id },
-              ),
-            }
-          : {}),
       },
     ],
     enabled: input.enabled ?? true,

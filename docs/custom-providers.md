@@ -193,7 +193,7 @@ Paseo passes those variables through to the Codex app-server process **and** map
 
 ### Setup
 
-In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Enter the gateway's exact model ID, then keep **Enable provider** on unless you intentionally want to hide it. If the gateway supports `model_reasoning_effort`, enter its supported values as a comma-separated list (for example, `low, medium, high, xhigh`). Paseo stores those values with the model, and the composer shows them as the reasoning selector. Leave the field blank when the gateway does not support reasoning efforts. In a new agent, open the model selector and select that new profile instead of the built-in Codex provider. Selecting built-in Codex still routes to `api.openai.com`.
+In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Enter the gateway's exact model ID, then keep **Enable provider** on unless you intentionally want to hide it. To add a model-specific `model_reasoning_effort` list, open the saved provider, choose **Add model**, and enter the gateway's supported values as a comma-separated list (for example, `low, medium, high, xhigh`). In a new agent, open the model selector and select that new profile instead of the built-in Codex provider. Selecting built-in Codex still routes to `api.openai.com`.
 
 ```json
 {

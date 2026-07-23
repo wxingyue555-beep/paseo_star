@@ -15,7 +15,6 @@ export interface CodexEndpointProfileFormState {
   baseUrl: string;
   apiKey: string;
   modelId: string;
-  reasoningEfforts: string;
   enabled: boolean;
   errors: CodexEndpointProfileErrors;
   saveError: string | null;
@@ -32,7 +31,6 @@ export interface CodexEndpointProfileFormModel {
   setBaseUrl: (value: string) => void;
   setApiKey: (value: string) => void;
   setModelId: (value: string) => void;
-  setReasoningEfforts: (value: string) => void;
   setEnabled: (value: boolean) => void;
   prepareSave: () => Exclude<
     CodexEndpointProfileResult,
@@ -54,7 +52,6 @@ export function openCodexEndpointProfileForm(input: {
     baseUrl: "",
     apiKey: "",
     modelId: "",
-    reasoningEfforts: "",
     enabled: true,
     errors: {},
     saveError: null,
@@ -69,7 +66,7 @@ export function openCodexEndpointProfileForm(input: {
   }
 
   function updateField(
-    field: "name" | "baseUrl" | "apiKey" | "modelId" | "reasoningEfforts" | "enabled",
+    field: "name" | "baseUrl" | "apiKey" | "modelId" | "enabled",
     value: string | boolean,
   ): void {
     publish({
@@ -97,7 +94,6 @@ export function openCodexEndpointProfileForm(input: {
     setBaseUrl: (value) => updateField("baseUrl", value),
     setApiKey: (value) => updateField("apiKey", value),
     setModelId: (value) => updateField("modelId", value),
-    setReasoningEfforts: (value) => updateField("reasoningEfforts", value),
     setEnabled: (value) => updateField("enabled", value),
     prepareSave: () => {
       const result = buildCodexEndpointProfile({ ...state, existingProviderIds });
