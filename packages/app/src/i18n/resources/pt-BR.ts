@@ -316,6 +316,11 @@ export const ptBR: TranslationResources = {
     filters: {
       all: "Tudo",
     },
+    scope: {
+      title: "Escopo da sessão",
+      allProjects: "Todos os projetos",
+      currentWorkspace: "Workspace atual",
+    },
     status: {
       connectHost: "Conecte-se a um host para importar sessões",
       updateHost: "Atualize o host para importar sessões.",

@@ -313,6 +313,11 @@ export const zhCN: TranslationResources = {
     filters: {
       all: "全部",
     },
+    scope: {
+      title: "会话范围",
+      allProjects: "全部项目",
+      currentWorkspace: "当前工作区",
+    },
     status: {
       connectHost: "连接到 Host 以导入会话",
       updateHost: "更新 Host 以导入会话。",

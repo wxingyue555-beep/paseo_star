@@ -312,6 +312,11 @@ export const en = {
     filters: {
       all: "All",
     },
+    scope: {
+      title: "Session scope",
+      allProjects: "All projects",
+      currentWorkspace: "Current workspace",
+    },
     status: {
       connectHost: "Connect to a host to import sessions",
       updateHost: "Update the host to import sessions.",

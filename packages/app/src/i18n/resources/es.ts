@@ -316,6 +316,11 @@ export const es: TranslationResources = {
     filters: {
       all: "Todo",
     },
+    scope: {
+      title: "Alcance de la sesión",
+      allProjects: "Todos los proyectos",
+      currentWorkspace: "Espacio de trabajo actual",
+    },
     status: {
       connectHost: "Conéctese a un host para importar sesiones",
       updateHost: "Actualice el host para importar sesiones.",

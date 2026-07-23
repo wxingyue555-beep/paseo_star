@@ -315,6 +315,11 @@ export const ru: TranslationResources = {
     filters: {
       all: "Все",
     },
+    scope: {
+      title: "Область сеанса",
+      allProjects: "Все проекты",
+      currentWorkspace: "Текущее рабочее пространство",
+    },
     status: {
       connectHost: "Подключитесь к хосту, чтобы импортировать сеансы",
       updateHost: "Обновите хост для импорта сеансов.",

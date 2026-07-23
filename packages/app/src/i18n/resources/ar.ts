@@ -313,6 +313,11 @@ export const ar: TranslationResources = {
     filters: {
       all: "الجميع",
     },
+    scope: {
+      title: "نطاق الجلسة",
+      allProjects: "كل المشاريع",
+      currentWorkspace: "مساحة العمل الحالية",
+    },
     status: {
       connectHost: "اتصل بمضيف لاستيراد الجلسات",
       updateHost: "قم بتحديث المضيف لاستيراد الجلسات.",

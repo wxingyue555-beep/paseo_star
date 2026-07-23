@@ -316,6 +316,11 @@ export const ja: TranslationResources = {
     filters: {
       all: "すべて",
     },
+    scope: {
+      title: "セッション範囲",
+      allProjects: "すべてのプロジェクト",
+      currentWorkspace: "現在のワークスペース",
+    },
     status: {
       connectHost: "セッションをインポートするにはホストに接続してください",
       updateHost: "セッションをインポートするにはホストを更新してください。",
