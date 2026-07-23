@@ -151,6 +151,59 @@ test("cancel_agent_request reports refusal only through its response", async () 
   ]);
 });
 
+test("saves a Codex endpoint through the write-only profile RPC", async () => {
+  const messages: SessionOutboundMessage[] = [];
+  const saveCodexEndpointProfile = vi.fn(() => ({
+    id: "ccswitch-work",
+    label: "CCSwitch Work",
+    baseUrl: "https://ccswitch.example.com/v1",
+    models: [{ id: "gateway-model", label: "gateway-model", isDefault: true }],
+    enabled: true,
+    hasApiKey: true,
+  }));
+  const session = createSessionForTest({
+    messages,
+    daemonConfigStore: asDaemonConfigStore({ saveCodexEndpointProfile }),
+  });
+
+  await session.handleMessage({
+    type: "provider.codex_endpoint.save.request",
+    requestId: "save-codex-endpoint",
+    profileId: "ccswitch-work",
+    label: "CCSwitch Work",
+    baseUrl: "https://ccswitch.example.com",
+    apiKey: "test-secret-must-not-roundtrip",
+    models: [{ id: "gateway-model" }],
+    enabled: true,
+  });
+
+  expect(saveCodexEndpointProfile).toHaveBeenCalledWith({
+    profileId: "ccswitch-work",
+    label: "CCSwitch Work",
+    baseUrl: "https://ccswitch.example.com",
+    apiKey: "test-secret-must-not-roundtrip",
+    models: [{ id: "gateway-model" }],
+    enabled: true,
+  });
+  expect(messages).toEqual([
+    {
+      type: "provider.codex_endpoint.save.response",
+      payload: {
+        requestId: "save-codex-endpoint",
+        profile: {
+          id: "ccswitch-work",
+          label: "CCSwitch Work",
+          baseUrl: "https://ccswitch.example.com/v1",
+          models: [{ id: "gateway-model", label: "gateway-model", isDefault: true }],
+          enabled: true,
+          hasApiKey: true,
+        },
+      },
+    },
+  ]);
+  expect(JSON.stringify(messages)).not.toContain("test-secret-must-not-roundtrip");
+});
+
 test("legacy cancel_agent_request reports refusal through the activity log", async () => {
   const agentId = "11111111-1111-4111-8111-111111111111";
   const messages: SessionOutboundMessage[] = [];
@@ -308,6 +361,7 @@ interface SessionForTestOptions {
   providerSnapshotManager?: ProviderSnapshotManager;
   stt?: SessionOptions["stt"];
   voice?: SessionOptions["voice"];
+  daemonConfigStore?: SessionOptions["daemonConfigStore"];
   paseoHome?: string;
   serverId?: SessionOptions["serverId"];
   daemonVersion?: SessionOptions["daemonVersion"];
@@ -395,13 +449,15 @@ function createSessionForTest(options: SessionForTestOptions = {}): Session {
     checkoutDiffManager: asCheckoutDiffManager(checkoutDiffManager),
     github: asGitHubService(github),
     workspaceGitService: asWorkspaceGitService(workspaceGitService),
-    daemonConfigStore: asDaemonConfigStore({
-      get: vi.fn(() => ({
-        mcp: { injectIntoAgents: false },
-        providers: {},
-      })),
-      onChange: vi.fn(() => () => {}),
-    }),
+    daemonConfigStore:
+      options.daemonConfigStore ??
+      asDaemonConfigStore({
+        get: vi.fn(() => ({
+          mcp: { injectIntoAgents: false },
+          providers: {},
+        })),
+        onChange: vi.fn(() => () => {}),
+      }),
     stt: options.stt ?? null,
     tts: null,
     terminalManager: options.terminalManager ?? null,

@@ -412,6 +412,31 @@ export class ProviderSnapshotManager {
     return this.getAgentManagerProviderState();
   }
 
+  /**
+   * Applies full persisted overrides supplied by a server-only settings workflow.
+   * Callers must never forward these overrides to WebSocket clients because they can
+   * contain provider credentials.
+   */
+  applyPersistedProviderOverrides(
+    providerOverrides: Record<string, ProviderOverride>,
+  ): AgentManagerProviderState {
+    this.baseProviderOverrides = providerOverrides;
+    this.providerOverrides = applyMutableProviderConfigToOverrides(
+      this.baseProviderOverrides,
+      undefined,
+    );
+    this.providerRegistry = this.buildRegistry();
+    this.providerClients = { ...this.extraClients } as Record<AgentProvider, AgentClient>;
+
+    for (const cwd of this.snapshots.keys()) {
+      this.providerLoads.delete(cwd);
+      this.snapshots.set(cwd, this.reconcileSnapshotForRegistry(cwd));
+      this.emitChange(cwd);
+    }
+
+    return this.getAgentManagerProviderState();
+  }
+
   on(event: "change", listener: ProviderSnapshotChangeListener): this {
     this.events.on(event, listener);
     return this;

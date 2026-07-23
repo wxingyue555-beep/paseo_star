@@ -18,7 +18,11 @@ import type {
   SessionOutboundMessage,
   WorkspaceDescriptorPayload,
 } from "@getpaseo/protocol/messages";
-import { DaemonClient } from "./daemon-client.js";
+import {
+  DaemonClient,
+  type CodexEndpointProfileSaveInput,
+  type CodexEndpointProfileSaveResult,
+} from "./daemon-client.js";
 import type {
   FetchAgentTimelineCursor,
   FetchAgentTimelineDirection,
@@ -306,6 +310,10 @@ export interface PaseoProviderActions {
     provider: PaseoAgentProvider,
     options?: { requestId?: string },
   ): Promise<PaseoProviderDiagnosticResult>;
+  saveCodexEndpointProfile(
+    input: CodexEndpointProfileSaveInput,
+    options?: { requestId?: string },
+  ): Promise<CodexEndpointProfileSaveResult>;
   subscribe(handler: (update: PaseoProviderSnapshotUpdate) => void): () => void;
 }
 
@@ -389,6 +397,8 @@ export function createPaseoClient(config: PaseoClientConfig): PaseoClient {
       snapshot: (options) => daemonClient.getProvidersSnapshot(options),
       refresh: (options) => daemonClient.refreshProvidersSnapshot(options),
       diagnostic: (provider, options) => daemonClient.getProviderDiagnostic(provider, options),
+      saveCodexEndpointProfile: (input, options) =>
+        daemonClient.saveCodexEndpointProfile(input, options?.requestId),
       subscribe: (handler) =>
         daemonClient.on("providers_snapshot_update", (message) => {
           handler(message.payload);

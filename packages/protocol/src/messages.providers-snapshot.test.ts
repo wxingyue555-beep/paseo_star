@@ -1,6 +1,10 @@
 import { describe, expect, test } from "vitest";
 import {
   GetProvidersSnapshotResponseMessageSchema,
+  MutableDaemonConfigPatchSchema,
+  MutableDaemonConfigSchema,
+  ProviderCodexEndpointSaveRequestSchema,
+  ProviderCodexEndpointSaveResponseSchema,
   ProviderSnapshotEntrySchema,
   ProvidersSnapshotUpdateMessageSchema,
 } from "./messages.js";
@@ -92,5 +96,64 @@ describe("provider snapshot message schemas", () => {
     });
 
     expect(parsed.payload.entries[0]?.enabled).toBe(true);
+  });
+});
+
+describe("Codex endpoint profile protocol", () => {
+  test("keeps mutable config backward-compatible while endpoint RPC is write-only", () => {
+    const config = MutableDaemonConfigSchema.parse({
+      mcp: { injectIntoAgents: false },
+      providers: {
+        "gateway-codex": {
+          enabled: true,
+          additionalModels: [{ id: "gateway-model", label: "Gateway model" }],
+          env: { OPENAI_API_KEY: "test-secret-must-not-roundtrip" },
+          extends: "codex",
+        },
+      },
+    });
+    const patch = MutableDaemonConfigPatchSchema.parse({
+      providers: {
+        "gateway-codex": {
+          env: { OPENAI_API_KEY: "test-secret-must-not-roundtrip" },
+          label: "Gateway",
+        },
+      },
+    });
+
+    expect(config.providers["gateway-codex"]?.env).toEqual({
+      OPENAI_API_KEY: "test-secret-must-not-roundtrip",
+    });
+    expect(patch.providers?.["gateway-codex"]?.env).toEqual({
+      OPENAI_API_KEY: "test-secret-must-not-roundtrip",
+    });
+  });
+
+  test("accepts a write-only endpoint API key and a redacted response", () => {
+    const request = ProviderCodexEndpointSaveRequestSchema.parse({
+      type: "provider.codex_endpoint.save.request",
+      requestId: "req-codex-endpoint",
+      profileId: "gateway-codex",
+      label: "Gateway Codex",
+      baseUrl: "https://gateway.example/v1",
+      apiKey: "test-secret-must-not-roundtrip",
+      models: [{ id: "gateway-model" }],
+    });
+    const response = ProviderCodexEndpointSaveResponseSchema.parse({
+      type: "provider.codex_endpoint.save.response",
+      payload: {
+        requestId: request.requestId,
+        profile: {
+          id: request.profileId,
+          label: request.label,
+          baseUrl: request.baseUrl,
+          models: [{ id: "gateway-model", label: "gateway-model", isDefault: true }],
+          enabled: true,
+          hasApiKey: true,
+        },
+      },
+    });
+
+    expect(JSON.stringify(response)).not.toContain("test-secret-must-not-roundtrip");
   });
 });

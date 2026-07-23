@@ -891,6 +891,14 @@ type SetDaemonConfigResponse = Extract<
   SessionOutboundMessage,
   { type: "set_daemon_config_response" }
 >;
+export type CodexEndpointProfileSaveInput = Omit<
+  Extract<SessionInboundMessage, { type: "provider.codex_endpoint.save.request" }>,
+  "type" | "requestId"
+>;
+export type CodexEndpointProfileSaveResult = Extract<
+  SessionOutboundMessage,
+  { type: "provider.codex_endpoint.save.response" }
+>["payload"];
 type CorrelatedResponseMessage =
   | Extract<SessionOutboundMessage, { payload: { requestId: string } }>
   | GetDaemonConfigResponse
@@ -4395,6 +4403,19 @@ export class DaemonClient {
         config,
       },
       responseType: "set_daemon_config_response",
+    });
+  }
+
+  async saveCodexEndpointProfile(
+    input: CodexEndpointProfileSaveInput,
+    requestId?: string,
+  ): Promise<CodexEndpointProfileSaveResult> {
+    return this.sendNamespacedCorrelatedSessionRequest({
+      requestId,
+      message: {
+        type: "provider.codex_endpoint.save.request",
+        ...input,
+      },
     });
   }
 

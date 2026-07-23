@@ -1810,7 +1810,7 @@ export class Session {
       case "get_daemon_config_request":
         this.emit({
           type: "get_daemon_config_response",
-          payload: { requestId: msg.requestId, config: this.daemonConfigStore.get() },
+          payload: { requestId: msg.requestId, config: this.daemonConfigStore.getClientConfig() },
         });
         return undefined;
       case "daemon.get_status.request":
@@ -1825,12 +1825,30 @@ export class Session {
         return this.daemonSession.handleDiagnosticsRequest(msg);
       case "daemon.update.request":
         return this.daemonSession.handleUpdateRequest(msg);
-      case "set_daemon_config_request":
+      case "set_daemon_config_request": {
+        this.daemonConfigStore.patch(msg.config);
         this.emit({
           type: "set_daemon_config_response",
           payload: {
             requestId: msg.requestId,
-            config: this.daemonConfigStore.patch(msg.config),
+            config: this.daemonConfigStore.getClientConfig(),
+          },
+        });
+        return undefined;
+      }
+      case "provider.codex_endpoint.save.request":
+        this.emit({
+          type: "provider.codex_endpoint.save.response",
+          payload: {
+            requestId: msg.requestId,
+            profile: this.daemonConfigStore.saveCodexEndpointProfile({
+              profileId: msg.profileId,
+              label: msg.label,
+              baseUrl: msg.baseUrl,
+              apiKey: msg.apiKey,
+              models: msg.models,
+              enabled: msg.enabled,
+            }),
           },
         });
         return undefined;
