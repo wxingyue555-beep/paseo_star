@@ -99,7 +99,6 @@ interface ControlledAgentControlsProps {
   /** Extra elements rendered inline with the agent controls (desktop only). */
   desktopExtras?: ReactNode;
   modelSelectorServerId?: string | null;
-  openModelSelectorAtProviders?: boolean;
   isCompactLayout?: boolean;
 }
 
@@ -416,7 +415,6 @@ function ControlledAgentControls({
   isRetryingModelProvider = false,
   desktopExtras,
   modelSelectorServerId = null,
-  openModelSelectorAtProviders = false,
   isCompactLayout,
 }: ControlledAgentControlsProps) {
   const { theme } = useUnistyles();
@@ -659,7 +657,6 @@ function ControlledAgentControls({
           handleOpenChange={handleOpenChange}
           renderThinkingOption={renderThinkingOption}
           modelSelectorServerId={modelSelectorServerId}
-          openModelSelectorAtProviders={openModelSelectorAtProviders}
         />
       )}
     </View>
@@ -911,7 +908,6 @@ interface SheetAgentControlsContentProps {
     onPress: () => void;
   }) => ReactElement;
   modelSelectorServerId: string | null;
-  openModelSelectorAtProviders: boolean;
 }
 
 function SheetAgentControlsContent(props: SheetAgentControlsContentProps) {
@@ -946,7 +942,6 @@ function SheetAgentControlsContent(props: SheetAgentControlsContentProps) {
     handleOpenChange,
     renderThinkingOption,
     modelSelectorServerId,
-    openModelSelectorAtProviders,
   } = props;
 
   const thinkingAnchorRef = useRef<View | null>(null);
@@ -1025,7 +1020,6 @@ function SheetAgentControlsContent(props: SheetAgentControlsContentProps) {
           serverId={modelSelectorServerId}
           desktopPlacement="top-start"
           desktopMinWidth={360}
-          openAtProviderList={openModelSelectorAtProviders}
         />
       ) : null}
 
@@ -1722,7 +1716,6 @@ export function DraftAgentControls({
           serverId={modelSelectorServerId}
           desktopPlacement="top-start"
           desktopMinWidth={360}
-          openAtProviderList
         />
         {selectedProvider ? (
           <ControlledAgentControls
@@ -1765,7 +1758,6 @@ export function DraftAgentControls({
       isRetryingModelProvider={isRetryingModelProvider}
       disabled={disabled}
       modelSelectorServerId={modelSelectorServerId}
-      openModelSelectorAtProviders
       isCompactLayout={isCompactLayout}
     />
   );

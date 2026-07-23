@@ -11,13 +11,13 @@ import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import { StyleSheet, withUnistyles } from "react-native-unistyles";
 import { useIsCompactFormFactor } from "@/constants/layout";
 import { isNative, isWeb as platformIsWeb } from "@/constants/platform";
-import { AlertTriangle, ChevronRight, Search, Settings, Star } from "lucide-react-native";
+import { AlertTriangle, Search, Settings, Star } from "lucide-react-native";
 import { ComboboxTrigger } from "@/components/ui/combobox-trigger";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import type { AgentProvider } from "@getpaseo/protocol/agent-types";
 import type { SheetHeader } from "@/components/adaptive-modal-sheet";
 import { useProviderSettingsStore } from "@/stores/provider-settings-store";
-import { resolveInitialSelectorView } from "./combined-model-selector-state";
+import { buildGroupedModelRows, resolveInitialSelectorView } from "./combined-model-selector-state";
 import { Button } from "@/components/ui/button";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import {
@@ -53,24 +53,12 @@ function favoriteButtonStyle({
   ];
 }
 
-function drillDownRowStyle({
-  hovered,
-  pressed,
-}: PressableStateCallbackType & { hovered?: boolean }) {
-  return [
-    styles.drillDownRow,
-    Boolean(hovered) && styles.drillDownRowHovered,
-    pressed && styles.drillDownRowPressed,
-  ];
-}
-
 const DESKTOP_PROVIDER_VIEW_MIN_HEIGHT = 220;
 const DESKTOP_PROVIDER_VIEW_MAX_HEIGHT = 400;
 const DESKTOP_PROVIDER_VIEW_BASE_HEIGHT = 80;
 const DESKTOP_MODEL_ROW_HEIGHT = 40;
 
 const ThemedAlertTriangle = withUnistyles(AlertTriangle);
-const ThemedChevronRight = withUnistyles(ChevronRight);
 const ThemedLoadingSpinner = withUnistyles(LoadingSpinner);
 const ThemedSearch = withUnistyles(Search);
 const ThemedSettings = withUnistyles(Settings);
@@ -152,8 +140,6 @@ interface CombinedModelSelectorProps {
   serverId?: string | null;
   desktopPlacement?: ComboboxProps["desktopPlacement"];
   desktopMinWidth?: number;
-  /** Open the selector at the provider list before choosing a model. */
-  openAtProviderList?: boolean;
   /**
    * Render the custom trigger as a full-width form field: the outer Pressable
    * becomes a transparent passthrough that stretches its child edge-to-edge and
@@ -174,7 +160,7 @@ interface SelectorContentProps {
   favoriteKeys: Set<string>;
   onSelect: (provider: string, modelId: string) => void;
   onToggleFavorite?: (provider: string, modelId: string) => void;
-  onDrillDown: (providerId: string, providerLabel: string) => void;
+  onOpenProviderSettings: (providerId: string) => void;
   onRetryProvider?: (provider: AgentProvider) => void;
   isRetryingProvider: boolean;
 }
@@ -332,11 +318,6 @@ function FavoritesSection({
   );
 }
 
-interface GroupProviderButtonProps {
-  provider: ProviderSelectorProvider;
-  onDrillDown: (providerId: string, providerLabel: string) => void;
-}
-
 function iconButtonStyle({ hovered, pressed }: PressableStateCallbackType & { hovered?: boolean }) {
   return [
     styles.rowIconButton,
@@ -345,13 +326,31 @@ function iconButtonStyle({ hovered, pressed }: PressableStateCallbackType & { ho
   ];
 }
 
-function GroupProviderButton({ provider, onDrillDown }: GroupProviderButtonProps) {
+function ProviderModelGroup({
+  provider,
+  rows,
+  selectedProvider,
+  selectedModel,
+  favoriteKeys,
+  onSelect,
+  onToggleFavorite,
+  onOpenProviderSettings,
+}: {
+  provider: ProviderSelectorProvider;
+  rows: ProviderSelectionModelRow[];
+  selectedProvider: string;
+  selectedModel: string;
+  favoriteKeys: Set<string>;
+  onSelect: (provider: string, modelId: string) => void;
+  onToggleFavorite?: (provider: string, modelId: string) => void;
+  onOpenProviderSettings: (providerId: string) => void;
+}) {
   const { t } = useTranslation();
   const selection = provider.modelSelection;
 
-  const handlePress = useCallback(() => {
-    onDrillDown(provider.id, provider.label);
-  }, [onDrillDown, provider.id, provider.label]);
+  const handleOpenSettings = useCallback(() => {
+    onOpenProviderSettings(provider.id);
+  }, [onOpenProviderSettings, provider.id]);
 
   let stateNode: React.ReactNode;
   if (selection.kind === "models") {
@@ -382,31 +381,35 @@ function GroupProviderButton({ provider, onDrillDown }: GroupProviderButtonProps
   }
 
   return (
-    <Pressable onPress={handlePress} style={drillDownRowStyle}>
-      <ProviderGlyph provider={provider.id} size={ICON_SIZE.sm} />
-      <Text style={styles.drillDownText}>{provider.label}</Text>
-      <View style={styles.drillDownTrailing}>
-        {stateNode}
-        <ThemedChevronRight size={ICON_SIZE.sm} uniProps={foregroundMutedMapping} />
-      </View>
-    </Pressable>
-  );
-}
-
-function GroupedProviderRows({
-  providers,
-  onDrillDown,
-}: {
-  providers: ProviderSelectorProvider[];
-  onDrillDown: (providerId: string, providerLabel: string) => void;
-}) {
-  return (
-    <View>
-      {providers.map((provider, index) => (
-        <View key={provider.id}>
-          {index > 0 ? <View style={styles.separator} /> : null}
-          <GroupProviderButton provider={provider} onDrillDown={onDrillDown} />
+    <View style={styles.providerGroup}>
+      <View style={styles.providerGroupHeading}>
+        <ProviderGlyph provider={provider.id} size={ICON_SIZE.sm} />
+        <Text style={styles.providerGroupLabel}>{provider.label}</Text>
+        <View style={styles.providerGroupTrailing}>
+          {stateNode}
+          <Pressable
+            onPress={handleOpenSettings}
+            hitSlop={8}
+            style={iconButtonStyle}
+            accessibilityRole="button"
+            accessibilityLabel={t("modelSelector.openProviderSettings", {
+              provider: provider.label,
+            })}
+            testID={`selector-provider-settings-${provider.id}`}
+          >
+            <HeaderSettingsIcon disabled={false} />
+          </Pressable>
         </View>
+      </View>
+      {rows.map((row) => (
+        <SelectableModelRow
+          key={row.favoriteKey}
+          row={row}
+          isSelected={row.provider === selectedProvider && row.modelId === selectedModel}
+          isFavorite={favoriteKeys.has(row.favoriteKey)}
+          onSelect={onSelect}
+          onToggleFavorite={onToggleFavorite}
+        />
       ))}
     </View>
   );
@@ -509,7 +512,7 @@ function SelectorContent({
   favoriteKeys,
   onSelect,
   onToggleFavorite,
-  onDrillDown,
+  onOpenProviderSettings,
   onRetryProvider,
   isRetryingProvider,
 }: SelectorContentProps) {
@@ -533,7 +536,11 @@ function SelectorContent({
     () => getAllProviderModelRows(providers).filter((row) => favoriteKeys.has(row.favoriteKey)),
     [favoriteKeys, providers],
   );
-  const hasResults = favoriteRows.length > 0 || providers.length > 0;
+  const groupedRows = useMemo(
+    () => buildGroupedModelRows({ providers, normalizedQuery }),
+    [normalizedQuery, providers],
+  );
+  const hasResults = favoriteRows.length > 0 || groupedRows.length > 0;
   const emptyState = (
     <View style={styles.emptyState}>
       <ThemedSearch size={ICON_SIZE.md} uniProps={foregroundMutedMapping} />
@@ -594,9 +601,19 @@ function SelectorContent({
         onToggleFavorite={onToggleFavorite}
       />
 
-      {providers.length > 0 ? (
-        <GroupedProviderRows providers={providers} onDrillDown={onDrillDown} />
-      ) : null}
+      {groupedRows.map(({ provider, rows }) => (
+        <ProviderModelGroup
+          key={provider.id}
+          provider={provider}
+          rows={rows}
+          selectedProvider={selectedProvider}
+          selectedModel={selectedModel}
+          favoriteKeys={favoriteKeys}
+          onSelect={onSelect}
+          onToggleFavorite={onToggleFavorite}
+          onOpenProviderSettings={onOpenProviderSettings}
+        />
+      ))}
 
       {!hasResults ? emptyState : null}
     </View>
@@ -620,7 +637,6 @@ export function CombinedModelSelector({
   serverId = null,
   desktopPlacement,
   desktopMinWidth,
-  openAtProviderList = false,
   triggerFill = false,
 }: CombinedModelSelectorProps) {
   const { t } = useTranslation();
@@ -645,9 +661,8 @@ export function CombinedModelSelector({
       selectedProvider,
       selectedModel,
       favoriteKeys,
-      openAtProviderList,
     });
-  }, [openAtProviderList, selectedProvider, selectedModel, favoriteKeys, providers]);
+  }, [selectedProvider, selectedModel, favoriteKeys, providers]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -764,26 +779,40 @@ export function CombinedModelSelector({
     bumpSearchResetKey();
   }, []);
 
-  const handleDrillDown = useCallback((providerId: string, providerLabel: string) => {
-    setView({ kind: "provider", providerId, providerLabel });
-  }, []);
-
   const handleSearchQueryChange = useCallback((value: string) => {
     setSearchQuery(value);
   }, []);
 
-  const openProviderSettings = useCallback(() => {
-    if (!serverId || view.kind !== "provider") return;
-    useProviderSettingsStore.getState().open({ serverId, provider: view.providerId });
-  }, [serverId, view]);
+  const openProviderSettings = useCallback(
+    (provider: string) => {
+      if (!serverId) return;
+      useProviderSettingsStore.getState().open({ serverId, provider });
+    },
+    [serverId],
+  );
+
+  const handleOpenViewedProviderSettings = useCallback(() => {
+    if (view.kind === "provider") {
+      openProviderSettings(view.providerId);
+    }
+  }, [openProviderSettings, view]);
 
   const sheetHeader = useMemo<SheetHeader>(() => {
     if (view.kind === "all") {
-      return { title: t("modelSelector.title") };
+      return {
+        title: t("modelSelector.title"),
+        search: {
+          onChange: handleSearchQueryChange,
+          resetKey: `all:${searchResetKey}`,
+          placeholder: t("modelSelector.searchPlaceholder"),
+          autoFocus: platformIsWeb,
+          testID: "model-search-input",
+        },
+      };
     }
     const headerActions = (
       <Pressable
-        onPress={openProviderSettings}
+        onPress={handleOpenViewedProviderSettings}
         disabled={!serverId}
         hitSlop={8}
         style={iconButtonStyle}
@@ -813,7 +842,7 @@ export function CombinedModelSelector({
     view,
     singleProviderView,
     serverId,
-    openProviderSettings,
+    handleOpenViewedProviderSettings,
     handleBackToAll,
     handleSearchQueryChange,
     searchResetKey,
@@ -886,7 +915,7 @@ export function CombinedModelSelector({
             favoriteKeys={favoriteKeys}
             onSelect={handleSelect}
             onToggleFavorite={onToggleFavorite}
-            onDrillDown={handleDrillDown}
+            onOpenProviderSettings={openProviderSettings}
             onRetryProvider={onRetryProvider}
             isRetryingProvider={isRetryingProvider}
           />
@@ -949,10 +978,6 @@ const styles = StyleSheet.create((theme) => ({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
   },
-  separator: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-  },
   sectionHeading: {
     flexDirection: "row",
     alignItems: "center",
@@ -967,27 +992,25 @@ const styles = StyleSheet.create((theme) => ({
     fontWeight: theme.fontWeight.normal,
     color: theme.colors.foregroundMuted,
   },
-  drillDownRow: {
+  providerGroup: {
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingBottom: theme.spacing[1],
+  },
+  providerGroupHeading: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[2],
     paddingHorizontal: theme.spacing[3],
     paddingVertical: theme.spacing[2],
-    minHeight: 36,
     ...(IS_WEB ? {} : { marginHorizontal: theme.spacing[1] }),
   },
-  drillDownRowHovered: {
-    backgroundColor: theme.colors.surface1,
-  },
-  drillDownRowPressed: {
-    backgroundColor: theme.colors.surface2,
-  },
-  drillDownText: {
+  providerGroupLabel: {
     flex: 1,
     fontSize: theme.fontSize.sm,
     color: theme.colors.foreground,
   },
-  drillDownTrailing: {
+  providerGroupTrailing: {
     flexDirection: "row",
     alignItems: "center",
     gap: theme.spacing[1],

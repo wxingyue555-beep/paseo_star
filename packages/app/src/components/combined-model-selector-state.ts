@@ -1,37 +1,38 @@
 import type { ProviderSelectorProvider } from "@/provider-selection/provider-selection";
+import {
+  filterAndRankModelRows,
+  getProviderModelRows,
+  type ProviderSelectionModelRow,
+} from "@/provider-selection/provider-selection";
 
 export type SelectorInitialView =
   | { kind: "all" }
   | { kind: "provider"; providerId: string; providerLabel: string };
 
-export function resolveInitialSelectorView(input: {
+export interface GroupedModelRows {
+  provider: ProviderSelectorProvider;
+  rows: ProviderSelectionModelRow[];
+}
+
+export function resolveInitialSelectorView(_input: {
   providers: ReadonlyArray<Pick<ProviderSelectorProvider, "id" | "label">>;
   selectedProvider: string;
   selectedModel: string;
   favoriteKeys: ReadonlySet<string>;
-  openAtProviderList: boolean;
 }): SelectorInitialView {
-  const singleProvider = input.providers.length === 1 ? input.providers[0] : undefined;
-  if (singleProvider) {
-    return {
-      kind: "provider",
-      providerId: singleProvider.id,
-      providerLabel: singleProvider.label,
-    };
-  }
-  if (input.openAtProviderList) return { kind: "all" };
-
-  const selectedFavoriteKey = `${input.selectedProvider}:${input.selectedModel}`;
-  if (
-    input.selectedProvider &&
-    input.selectedModel &&
-    !input.favoriteKeys.has(selectedFavoriteKey)
-  ) {
-    const provider = input.providers.find((entry) => entry.id === input.selectedProvider);
-    if (provider) {
-      return { kind: "provider", providerId: provider.id, providerLabel: provider.label };
-    }
-  }
-
   return { kind: "all" };
+}
+
+/**
+ * The all-model view is the primary chooser. Each group preserves its provider
+ * identity so a row press always produces an atomic provider + model selection.
+ */
+export function buildGroupedModelRows(input: {
+  providers: ReadonlyArray<ProviderSelectorProvider>;
+  normalizedQuery: string;
+}): GroupedModelRows[] {
+  return input.providers.flatMap((provider) => {
+    const rows = filterAndRankModelRows(getProviderModelRows(provider), input.normalizedQuery);
+    return rows.length > 0 ? [{ provider, rows }] : [];
+  });
 }
