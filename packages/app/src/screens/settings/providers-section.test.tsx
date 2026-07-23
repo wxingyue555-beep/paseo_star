@@ -161,6 +161,25 @@ vi.mock("@/components/ui/switch", () => ({
     }),
 }));
 
+vi.mock("@/components/ui/button", () => ({
+  Button: ({
+    children,
+    onPress,
+    disabled,
+    testID,
+  }: {
+    children?: React.ReactNode;
+    onPress?: () => void;
+    disabled?: boolean;
+    testID?: string;
+  }) =>
+    React.createElement(
+      "button",
+      { type: "button", disabled, "data-testid": testID, onClick: disabled ? undefined : onPress },
+      children,
+    ),
+}));
+
 vi.mock("@/components/ui/loading-spinner", () => ({
   LoadingSpinner: () => React.createElement("span", { "data-testid": "loading-spinner" }),
 }));
@@ -239,6 +258,14 @@ vi.mock("@/stores/provider-settings-store", () => ({
 
 vi.mock("@/components/provider-catalog-list", () => ({
   ProviderCatalogList: () => null,
+}));
+
+vi.mock("@/components/codex-endpoint-profile-sheet", () => ({
+  CodexEndpointProfileSheet: ({ visible }: { visible: boolean }) =>
+    React.createElement("div", {
+      "data-testid": "codex-endpoint-profile-sheet",
+      "data-visible": visible,
+    }),
 }));
 
 vi.mock("@/hooks/use-providers-snapshot", () => ({
@@ -456,5 +483,27 @@ describe("ProvidersSection", () => {
     expect(patchConfigMock).toHaveBeenCalledWith({
       providers: { claude: { enabled: false } },
     });
+  });
+
+  it("opens the Codex-compatible endpoint form from provider settings", () => {
+    snapshotState.entries = [claudeEntry];
+    configState.config = makeConfig();
+
+    render();
+
+    const addButton = container?.querySelector<HTMLElement>(
+      '[data-testid="add-codex-endpoint-profile"]',
+    );
+    const sheet = container?.querySelector<HTMLElement>(
+      '[data-testid="codex-endpoint-profile-sheet"]',
+    );
+    expect(addButton).not.toBeNull();
+    expect(sheet?.getAttribute("data-visible")).toBe("false");
+
+    act(() => {
+      addButton?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(sheet?.getAttribute("data-visible")).toBe("true");
   });
 });
