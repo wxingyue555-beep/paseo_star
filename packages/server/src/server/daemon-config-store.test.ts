@@ -20,8 +20,6 @@ describe("applyMutableProviderConfigToOverrides", () => {
         {
           gemini: {
             enabled: false,
-            description: "Gemini ACP",
-            env: { GEMINI_AUTO_UPDATE: "0" },
           },
           claude: {
             additionalModels: [
@@ -37,9 +35,7 @@ describe("applyMutableProviderConfigToOverrides", () => {
       gemini: {
         extends: "acp",
         label: "Gemini",
-        description: "Gemini ACP",
         command: ["gemini", "--acp"],
-        env: { GEMINI_AUTO_UPDATE: "0" },
         enabled: false,
       },
       claude: {
@@ -550,7 +546,7 @@ describe("DaemonConfigStore", () => {
     expect(persisted.agents?.metadataGeneration).toEqual({ providers: [] });
   });
 
-  test("patch persists custom ACP provider overrides into config.json", () => {
+  test("saves Codex endpoint profiles without returning their API key", () => {
     const paseoHome = mkdtempSync(path.join(tmpdir(), "paseo-daemon-config-store-"));
     tempDirs.push(paseoHome);
 
@@ -568,25 +564,43 @@ describe("DaemonConfigStore", () => {
       undefined,
     );
 
-    store.patch({
-      providers: {
-        "paseo-e2e-acp": {
-          extends: "acp",
-          label: "Paseo E2E ACP",
-          description: "E2E ACP provider fixture",
-          command: ["npx", "-y", "--version"],
-          env: {},
+    const saved = store.saveCodexEndpointProfile({
+      profileId: "gateway-codex",
+      label: "Gateway Codex",
+      baseUrl: "https://gateway.example",
+      apiKey: "test-secret-must-not-roundtrip",
+      models: [
+        {
+          id: "gateway-model",
+          thinkingOptions: [{ id: "low" }, { id: "high", isDefault: true }],
         },
-      },
+      ],
     });
 
     const persisted = loadPersistedConfig(paseoHome);
-    expect(persisted.agents?.providers?.["paseo-e2e-acp"]).toEqual({
-      extends: "acp",
-      label: "Paseo E2E ACP",
-      description: "E2E ACP provider fixture",
-      command: ["npx", "-y", "--version"],
-      env: {},
+    expect(saved).toEqual({
+      id: "gateway-codex",
+      label: "Gateway Codex",
+      baseUrl: "https://gateway.example/v1",
+      models: [
+        {
+          id: "gateway-model",
+          label: "gateway-model",
+          isDefault: true,
+          thinkingOptions: [
+            { id: "low", label: "low" },
+            { id: "high", label: "high", isDefault: true },
+          ],
+        },
+      ],
+      enabled: true,
+      hasApiKey: true,
     });
+    expect(JSON.stringify(saved)).not.toContain("test-secret-must-not-roundtrip");
+    expect(persisted.agents?.providers?.["gateway-codex"]?.env).toEqual({
+      OPENAI_BASE_URL: "https://gateway.example/v1",
+      OPENAI_API_KEY: "test-secret-must-not-roundtrip",
+    });
+    expect(store.get().providers["gateway-codex"]).toEqual({ enabled: true });
   });
 });

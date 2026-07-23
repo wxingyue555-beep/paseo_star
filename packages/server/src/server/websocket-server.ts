@@ -15,7 +15,7 @@ import type { FileBackedChatService } from "./chat/chat-service.js";
 import type { LoopService } from "./loop-service.js";
 import type { ScheduleService } from "./schedule/service.js";
 import type { CheckoutDiffManager, CheckoutDiffMetrics } from "./checkout-diff-manager.js";
-import type { DaemonConfigStore, MutableDaemonConfig } from "./daemon-config-store.js";
+import type { DaemonConfigStore } from "./daemon-config-store.js";
 import {
   type ServerInfoStatusPayload,
   type SessionOutboundMessage,
@@ -606,12 +606,13 @@ export class VoiceAssistantWebSocketServer {
         this.publishSpeechReadiness(snapshot);
       }) ?? null;
     this.unsubscribeDaemonConfigChange = this.daemonConfigStore.onChange((config, details) => {
-      const nextAgentManagerState = this.providerSnapshotManager.applyMutableProviderConfig(
-        config.providers,
-        { removeProviders: details.removedProviders },
-      );
+      const nextAgentManagerState = details.providerOverrides
+        ? this.providerSnapshotManager.applyPersistedProviderOverrides(details.providerOverrides)
+        : this.providerSnapshotManager.applyMutableProviderConfig(config.providers, {
+            removeProviders: details.removedProviders,
+          });
       this.agentManager.updateProviderRegistry(nextAgentManagerState);
-      this.broadcastDaemonConfigChanged(config);
+      this.broadcastDaemonConfigChanged();
     });
 
     const pushLogger = this.logger.child({ module: "push" });
@@ -1418,6 +1419,8 @@ export class VoiceAssistantWebSocketServer {
         selectiveAgentTimeline: true,
         // COMPAT(stableProjectIdentity): added in v0.1.109, remove gate after 2027-01-15.
         stableProjectIdentity: true,
+        // COMPAT(codexEndpointProfiles): added in v0.1.X, drop the gate when floor >= v0.1.X.
+        codexEndpointProfiles: true,
       },
     };
   }
@@ -1432,12 +1435,12 @@ export class VoiceAssistantWebSocketServer {
     };
   }
 
-  private createDaemonConfigChangedMessage(config: MutableDaemonConfig): WSOutboundMessage {
+  private createDaemonConfigChangedMessage(): WSOutboundMessage {
     return wrapSessionMessage({
       type: "status",
       payload: {
         status: "daemon_config_changed",
-        config,
+        config: this.daemonConfigStore.getClientConfig(),
       },
     });
   }
@@ -1446,8 +1449,8 @@ export class VoiceAssistantWebSocketServer {
     this.broadcast(this.createServerInfoMessage());
   }
 
-  private broadcastDaemonConfigChanged(config: MutableDaemonConfig): void {
-    this.broadcast(this.createDaemonConfigChangedMessage(config));
+  private broadcastDaemonConfigChanged(): void {
+    this.broadcast(this.createDaemonConfigChangedMessage());
   }
 
   private bindSocketHandlers(ws: WebSocketLike): void {

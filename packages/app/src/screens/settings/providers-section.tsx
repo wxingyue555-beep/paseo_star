@@ -21,8 +21,10 @@ import {
   type AcpProviderCatalogItem,
 } from "@/hooks/use-acp-provider-catalog";
 import { ProviderCatalogList } from "@/components/provider-catalog-list";
+import { CodexEndpointProfileSheet } from "@/components/codex-endpoint-profile-sheet";
 import { getProviderIcon } from "@/components/provider-icons";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
   DropdownMenu,
@@ -316,6 +318,8 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
   const { t } = useTranslation();
   const isConnected = useHostRuntimeIsConnected(serverId);
   const supportsProviderRemoval = useHostFeature(serverId, "providerRemoval");
+  // COMPAT(codexEndpointProfiles): added in v0.1.X, drop the gate when floor >= v0.1.X.
+  const supportsCodexEndpointProfiles = useHostFeature(serverId, "codexEndpointProfiles");
   const { entries, isLoading, refresh } = useProvidersSnapshot(serverId);
   const { patchConfig } = useDaemonConfig(serverId);
   const openProviderSettings = useProviderSettingsStore((state) => state.open);
@@ -323,6 +327,7 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
   const [removingProviderId, setRemovingProviderId] = useState<string | null>(null);
   const removingProviderIdRef = useRef<string | null>(null);
   const [installingProviderId, setInstallingProviderId] = useState<string | null>(null);
+  const [codexEndpointProfileOpen, setCodexEndpointProfileOpen] = useState(false);
 
   const providerDefinitions = useMemo(() => buildProviderDefinitions(entries), [entries]);
   const hasServer = serverId.length > 0;
@@ -401,6 +406,12 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
     },
     [installingProviderId, patchConfig, refresh, t],
   );
+  const handleOpenCodexEndpointProfile = useCallback(() => {
+    setCodexEndpointProfileOpen(true);
+  }, []);
+  const handleCloseCodexEndpointProfile = useCallback(() => {
+    setCodexEndpointProfileOpen(false);
+  }, []);
 
   return (
     <>
@@ -450,12 +461,43 @@ export function ProvidersSection({ serverId }: ProvidersSectionProps) {
           testID="host-page-add-provider-card"
           style={styles.addProviderSection}
         >
+          <View style={styles.codexEndpointCard}>
+            <View style={styles.codexEndpointCopy}>
+              <Text style={settingsStyles.rowTitle}>
+                {t("settings.providers.codexEndpoint.addTitle")}
+              </Text>
+              <Text style={styles.codexEndpointDescription}>
+                {t(
+                  supportsCodexEndpointProfiles
+                    ? "settings.providers.codexEndpoint.addDescription"
+                    : "settings.providers.codexEndpoint.updateHost",
+                )}
+              </Text>
+            </View>
+            {supportsCodexEndpointProfiles ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                onPress={handleOpenCodexEndpointProfile}
+                testID="add-codex-endpoint-profile"
+              >
+                {t("settings.providers.codexEndpoint.add")}
+              </Button>
+            ) : null}
+          </View>
           <ProviderCatalogList
             serverId={serverId}
             installingProviderId={installingProviderId}
             onInstall={handleInstall}
           />
         </SettingsSection>
+      ) : null}
+      {supportsCodexEndpointProfiles ? (
+        <CodexEndpointProfileSheet
+          serverId={serverId}
+          visible={codexEndpointProfileOpen}
+          onClose={handleCloseCodexEndpointProfile}
+        />
       ) : null}
     </>
   );
@@ -467,6 +509,26 @@ const styles = StyleSheet.create((theme) => ({
   },
   addProviderSection: {
     marginTop: theme.spacing[4],
+  },
+  codexEndpointCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing[3],
+    padding: theme.spacing[3],
+    marginBottom: theme.spacing[3],
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface1,
+  },
+  codexEndpointCopy: {
+    flex: 1,
+    minWidth: 0,
+    gap: theme.spacing[1],
+  },
+  codexEndpointDescription: {
+    color: theme.colors.foregroundMuted,
+    fontSize: theme.fontSize.xs,
   },
   emptyCard: {
     padding: theme.spacing[4],

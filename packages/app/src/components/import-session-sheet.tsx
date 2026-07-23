@@ -40,6 +40,7 @@ type RecentProviderSessionsClient = Pick<
 >;
 
 type ImportedAgent = Awaited<ReturnType<RecentProviderSessionsClient["importAgent"]>>;
+type ImportSessionScope = "all" | "workspace";
 
 interface ImportSessionSheetProps {
   visible: boolean;
@@ -271,6 +272,12 @@ export function ImportSessionSheet({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { theme } = useUnistyles();
+  const [selectedProvider, setSelectedProvider] = useState<string>(ALL_FILTER_VALUE);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [sessionScope, setSessionScope] = useState<ImportSessionScope>("all");
+  const [isScopeOpen, setIsScopeOpen] = useState(false);
+  const filterAnchorRef = useRef<View>(null);
+  const scopeAnchorRef = useRef<View>(null);
 
   const { entries: snapshotEntries, supportsSnapshot } = useProvidersSnapshot(serverId, {
     cwd,
@@ -294,8 +301,9 @@ export function ImportSessionSheet({
   );
 
   const sessionsQueryRoot = useMemo(
-    () => ["recent-provider-sessions", cwd ?? null] as const,
-    [cwd],
+    () =>
+      ["recent-provider-sessions", sessionScope === "workspace" ? (cwd ?? null) : null] as const,
+    [cwd, sessionScope],
   );
 
   const queriesConfig = useMemo(
@@ -305,10 +313,10 @@ export function ImportSessionSheet({
         sessionsQueryRoot,
         visible,
         client,
-        cwd,
+        cwd: sessionScope === "workspace" ? cwd : null,
         hostDisconnectedMessage: t("workspace.terminal.hostDisconnected"),
       }),
-    [providersToFetch, sessionsQueryRoot, visible, client, cwd, t],
+    [providersToFetch, sessionsQueryRoot, visible, client, cwd, sessionScope, t],
   );
 
   const queries = useQueries({ queries: queriesConfig });
@@ -321,10 +329,6 @@ export function ImportSessionSheet({
 
   const filterProviders = useMemo(() => [...(providersToFetch ?? [])].sort(), [providersToFetch]);
 
-  const [selectedProvider, setSelectedProvider] = useState<string>(ALL_FILTER_VALUE);
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const filterAnchorRef = useRef<View>(null);
-
   useEffect(() => {
     if (
       !visible ||
@@ -333,6 +337,13 @@ export function ImportSessionSheet({
       setSelectedProvider(ALL_FILTER_VALUE);
     }
   }, [visible, filterProviders, selectedProvider]);
+
+  useEffect(() => {
+    if (!visible) {
+      setSessionScope("all");
+      setIsScopeOpen(false);
+    }
+  }, [visible]);
 
   const visibleEntries = useMemo(() => {
     if (selectedProvider === ALL_FILTER_VALUE) return aggregatedEntries;
@@ -372,6 +383,28 @@ export function ImportSessionSheet({
     setSelectedProvider(id);
     setIsFilterOpen(false);
   }, []);
+
+  const scopeOptions = useMemo<ComboboxOption[]>(
+    () => [
+      { id: "all", label: t("importSession.scope.allProjects") },
+      ...(cwd ? [{ id: "workspace", label: t("importSession.scope.currentWorkspace") }] : []),
+    ],
+    [cwd, t],
+  );
+
+  const selectedScopeLabel = useMemo(
+    () => scopeOptions.find((option) => option.id === sessionScope)?.label ?? "",
+    [scopeOptions, sessionScope],
+  );
+
+  const handleScopeSelect = useCallback((scope: string) => {
+    if (scope === "all" || scope === "workspace") {
+      setSessionScope(scope);
+    }
+    setIsScopeOpen(false);
+  }, []);
+
+  const handleScopeOpen = useCallback(() => setIsScopeOpen(true), []);
 
   const filterOptionIcons = useMemo(() => {
     const map = new Map<string, React.ReactNode>();
@@ -418,7 +451,7 @@ export function ImportSessionSheet({
         providerId: entry.providerId,
         providerHandleId: entry.providerHandleId,
         cwd: entry.cwd,
-        ...(workspaceId ? { workspaceId } : {}),
+        ...(sessionScope === "workspace" && workspaceId ? { workspaceId } : {}),
       });
       return agent;
     },
@@ -483,6 +516,7 @@ export function ImportSessionSheet({
     providerLabelById,
   });
   const showFilter = filterProviders.length > 1;
+  const showScopeFilter = Boolean(cwd);
 
   return (
     <AdaptiveModalSheet
@@ -493,41 +527,73 @@ export function ImportSessionSheet({
       desktopMaxWidth={560}
       snapPoints={IMPORT_SHEET_SNAP_POINTS}
     >
-      {showFilter ? (
-        <View ref={filterAnchorRef} collapsable={false} style={styles.filterTriggerWrap}>
-          <Pressable
-            onPress={handleFilterOpen}
-            style={filterTriggerStyle}
-            testID="import-session-filter-trigger"
-            accessibilityRole="button"
-            accessibilityLabel={`Filter: ${selectedProviderLabel}`}
-          >
-            {selectedProvider === ALL_FILTER_VALUE ? (
-              <Layers size={14} color={theme.colors.foregroundMuted} />
-            ) : (
-              (() => {
-                const ProviderIcon = getProviderIcon(selectedProvider);
-                return <ProviderIcon size={14} color={theme.colors.foregroundMuted} />;
-              })()
-            )}
-            <Text style={styles.filterTriggerText} numberOfLines={1}>
-              {selectedProviderLabel}
-            </Text>
-            <ChevronDown size={14} color={theme.colors.foregroundMuted} />
-          </Pressable>
-          <Combobox
-            options={filterComboboxOptions}
-            value={selectedProvider}
-            onSelect={handleFilterSelect}
-            renderOption={renderFilterOption}
-            searchable={false}
-            title="Filter by provider"
-            open={isFilterOpen}
-            onOpenChange={setIsFilterOpen}
-            anchorRef={filterAnchorRef}
-            desktopPlacement="bottom-start"
-            desktopPreventInitialFlash
-          />
+      {showScopeFilter || showFilter ? (
+        <View style={styles.filtersRow}>
+          {showScopeFilter ? (
+            <View ref={scopeAnchorRef} collapsable={false} style={styles.filterTriggerWrap}>
+              <Pressable
+                onPress={handleScopeOpen}
+                style={filterTriggerStyle}
+                testID="import-session-scope-trigger"
+                accessibilityRole="button"
+                accessibilityLabel={selectedScopeLabel}
+              >
+                <Text style={styles.filterTriggerText} numberOfLines={1}>
+                  {selectedScopeLabel}
+                </Text>
+                <ChevronDown size={14} color={theme.colors.foregroundMuted} />
+              </Pressable>
+              <Combobox
+                options={scopeOptions}
+                value={sessionScope}
+                onSelect={handleScopeSelect}
+                searchable={false}
+                title={t("importSession.scope.title")}
+                open={isScopeOpen}
+                onOpenChange={setIsScopeOpen}
+                anchorRef={scopeAnchorRef}
+                desktopPlacement="bottom-start"
+                desktopPreventInitialFlash
+              />
+            </View>
+          ) : null}
+          {showFilter ? (
+            <View ref={filterAnchorRef} collapsable={false} style={styles.filterTriggerWrap}>
+              <Pressable
+                onPress={handleFilterOpen}
+                style={filterTriggerStyle}
+                testID="import-session-filter-trigger"
+                accessibilityRole="button"
+                accessibilityLabel={`Filter: ${selectedProviderLabel}`}
+              >
+                {selectedProvider === ALL_FILTER_VALUE ? (
+                  <Layers size={14} color={theme.colors.foregroundMuted} />
+                ) : (
+                  (() => {
+                    const ProviderIcon = getProviderIcon(selectedProvider);
+                    return <ProviderIcon size={14} color={theme.colors.foregroundMuted} />;
+                  })()
+                )}
+                <Text style={styles.filterTriggerText} numberOfLines={1}>
+                  {selectedProviderLabel}
+                </Text>
+                <ChevronDown size={14} color={theme.colors.foregroundMuted} />
+              </Pressable>
+              <Combobox
+                options={filterComboboxOptions}
+                value={selectedProvider}
+                onSelect={handleFilterSelect}
+                renderOption={renderFilterOption}
+                searchable={false}
+                title="Filter by provider"
+                open={isFilterOpen}
+                onOpenChange={setIsFilterOpen}
+                anchorRef={filterAnchorRef}
+                desktopPlacement="bottom-start"
+                desktopPreventInitialFlash
+              />
+            </View>
+          ) : null}
         </View>
       ) : null}
       <SheetStatusMessages
@@ -548,7 +614,7 @@ export function ImportSessionSheet({
               entry={entry}
               disabled={importMutation.isPending}
               importing={importingSessionKey === `${entry.providerId}:${entry.providerHandleId}`}
-              showCwd={!cwd}
+              showCwd={sessionScope === "all"}
               onImportSession={handleImportSession}
             />
           ))}
@@ -560,6 +626,11 @@ export function ImportSessionSheet({
 }
 
 const styles = StyleSheet.create((theme) => ({
+  filtersRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing[2],
+  },
   filterTriggerWrap: {
     paddingBottom: theme.spacing[2],
   },

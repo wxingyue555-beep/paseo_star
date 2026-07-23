@@ -161,6 +161,7 @@ function AddCustomModelSubSheet({
   const { theme } = useUnistyles();
   const { config, patchConfig } = useDaemonConfig(serverId);
   const [input, setInput] = useState("");
+  const [reasoningEfforts, setReasoningEfforts] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -169,23 +170,57 @@ function AddCustomModelSubSheet({
     [config?.providers, provider],
   );
   const trimmed = input.trim();
-  const canAdd = trimmed.length > 0 && !additionalModels.some((model) => model.id === trimmed);
+  const existingModel = additionalModels.find((model) => model.id === trimmed);
+  const canAdd = trimmed.length > 0 && (!existingModel || reasoningEfforts.trim().length > 0);
 
   useEffect(() => {
     if (!visible) {
       setInput("");
+      setReasoningEfforts("");
       setError(null);
     }
   }, [visible]);
 
   const handleAdd = useCallback(() => {
     if (!canAdd) return;
+    const newThinkingOptions = Array.from(
+      new Set(
+        reasoningEfforts
+          .split(",")
+          .map((effort) => effort.trim())
+          .filter(Boolean),
+      ),
+    ).map((id, index) => (index === 0 ? { id, label: id, isDefault: true } : { id, label: id }));
+    const thinkingOptions = Array.from(
+      new Map(
+        [...(existingModel?.thinkingOptions ?? []), ...newThinkingOptions].map((option) => [
+          option.id,
+          option,
+        ]),
+      ).values(),
+    );
     setError(null);
     setSaving(true);
     void patchConfig({
       providers: {
         [provider]: {
-          additionalModels: [...additionalModels, { id: trimmed, label: trimmed }],
+          additionalModels: existingModel
+            ? additionalModels.map((model) =>
+                model.id === trimmed
+                  ? {
+                      ...model,
+                      ...(thinkingOptions.length > 0 ? { thinkingOptions } : {}),
+                    }
+                  : model,
+              )
+            : [
+                ...additionalModels,
+                {
+                  id: trimmed,
+                  label: trimmed,
+                  ...(thinkingOptions.length > 0 ? { thinkingOptions } : {}),
+                },
+              ],
         },
       },
     })
@@ -195,7 +230,18 @@ function AddCustomModelSubSheet({
         setError(err instanceof Error ? err.message : t("settings.providers.models.failedToSave"));
       })
       .finally(() => setSaving(false));
-  }, [additionalModels, canAdd, onClose, patchConfig, provider, refresh, t, trimmed]);
+  }, [
+    additionalModels,
+    canAdd,
+    existingModel,
+    onClose,
+    patchConfig,
+    provider,
+    reasoningEfforts,
+    refresh,
+    t,
+    trimmed,
+  ]);
 
   const header = useMemo<SheetHeader>(
     () => ({ title: t("settings.providers.models.addCustomTitle") }),
@@ -224,6 +270,19 @@ function AddCustomModelSubSheet({
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="done"
+          // @ts-expect-error - outlineStyle is web-only
+          style={[sheetStyles.formInput, isWeb && { outlineStyle: "none" }]}
+        />
+        <Text style={sheetStyles.formLabel}>{t("settings.providers.models.reasoningEfforts")}</Text>
+        <AdaptiveTextInput
+          initialValue={reasoningEfforts}
+          resetKey={`add-custom-reasoning-${visible}`}
+          value={reasoningEfforts}
+          onChangeText={setReasoningEfforts}
+          placeholder={t("settings.providers.models.reasoningEffortsPlaceholder")}
+          placeholderTextColor={theme.colors.foregroundMuted}
+          autoCapitalize="none"
+          autoCorrect={false}
           // @ts-expect-error - outlineStyle is web-only
           style={[sheetStyles.formInput, isWeb && { outlineStyle: "none" }]}
         />

@@ -98,6 +98,16 @@ const MutableDaemonProviderModelSchema = z
     label: z.string().min(1),
     description: z.string().optional(),
     isDefault: z.boolean().optional(),
+    thinkingOptions: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          label: z.string().min(1),
+          description: z.string().optional(),
+          isDefault: z.boolean().optional(),
+        }),
+      )
+      .optional(),
   })
   .passthrough();
 
@@ -1167,6 +1177,40 @@ export const SetDaemonConfigRequestMessageSchema = z.object({
   type: z.literal("set_daemon_config_request"),
   requestId: z.string(),
   config: MutableDaemonConfigPatchSchema,
+});
+
+/**
+ * Writes one Codex-compatible endpoint profile without exposing its API key through
+ * the mutable daemon-config surface. `apiKey` is write-only: it is never present in
+ * the response, daemon config messages, or provider snapshots.
+ */
+const CodexEndpointProfileModelSchema = z.object({
+  id: z.string().trim().min(1).max(256),
+  label: z.string().trim().min(1).max(256).optional(),
+  thinkingOptions: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1).max(128),
+        label: z.string().trim().min(1).max(128).optional(),
+        isDefault: z.boolean().optional(),
+      }),
+    )
+    .max(20)
+    .optional(),
+});
+
+export const ProviderCodexEndpointSaveRequestSchema = z.object({
+  type: z.literal("provider.codex_endpoint.save.request"),
+  requestId: z.string(),
+  profileId: z
+    .string()
+    .trim()
+    .regex(/^[a-z][a-z0-9-]*$/),
+  label: z.string().trim().min(1).max(128),
+  baseUrl: z.string().trim().url().max(2048),
+  apiKey: z.string().min(1).max(4096).optional(),
+  models: z.array(CodexEndpointProfileModelSchema).min(1).max(100),
+  enabled: z.boolean().optional(),
 });
 
 export const ReadProjectConfigRequestMessageSchema = z.object({
@@ -2433,6 +2477,7 @@ export const SessionInboundMessageSchema = z.discriminatedUnion("type", [
   DiagnosticsRequestSchema,
   GetDaemonConfigRequestMessageSchema,
   SetDaemonConfigRequestMessageSchema,
+  ProviderCodexEndpointSaveRequestSchema,
   ReadProjectConfigRequestMessageSchema,
   WriteProjectConfigRequestMessageSchema,
   DictationStreamStartMessageSchema,
@@ -2789,6 +2834,8 @@ export const ServerInfoStatusPayloadSchema = z
         selectiveAgentTimeline: z.boolean().optional(),
         // COMPAT(stableProjectIdentity): added in v0.1.109, remove gate after 2027-01-15.
         stableProjectIdentity: z.boolean().optional(),
+        // COMPAT(codexEndpointProfiles): added in v0.1.X, drop the gate when floor >= v0.1.X.
+        codexEndpointProfiles: z.boolean().optional(),
       })
       .optional(),
   })
@@ -3761,6 +3808,36 @@ export const SetDaemonConfigResponseMessageSchema = z.object({
       config: MutableDaemonConfigSchema,
     })
     .passthrough(),
+});
+
+export const ProviderCodexEndpointSaveResponseSchema = z.object({
+  type: z.literal("provider.codex_endpoint.save.response"),
+  payload: z.object({
+    requestId: z.string(),
+    profile: z.object({
+      id: z.string(),
+      label: z.string(),
+      baseUrl: z.string(),
+      models: z.array(
+        z.object({
+          id: z.string(),
+          label: z.string(),
+          isDefault: z.boolean().optional(),
+          thinkingOptions: z
+            .array(
+              z.object({
+                id: z.string(),
+                label: z.string(),
+                isDefault: z.boolean().optional(),
+              }),
+            )
+            .optional(),
+        }),
+      ),
+      enabled: z.boolean(),
+      hasApiKey: z.boolean(),
+    }),
+  }),
 });
 
 export const ReadProjectConfigResponseMessageSchema = z.object({
@@ -5142,6 +5219,7 @@ export const SessionOutboundMessageSchema = z.discriminatedUnion("type", [
   DiagnosticsResponseSchema,
   GetDaemonConfigResponseMessageSchema,
   SetDaemonConfigResponseMessageSchema,
+  ProviderCodexEndpointSaveResponseSchema,
   ReadProjectConfigResponseMessageSchema,
   WriteProjectConfigResponseMessageSchema,
   SetAgentModeResponseMessageSchema,

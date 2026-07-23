@@ -193,6 +193,8 @@ Paseo passes those variables through to the Codex app-server process **and** map
 
 ### Setup
 
+In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Enter the gateway's exact model ID, then keep **Enable provider** on unless you intentionally want to hide it. To add a model-specific `model_reasoning_effort` list, open the saved provider, choose **Add model**, and enter the gateway's supported values as a comma-separated list (for example, `low, medium, high, xhigh`). In a new agent, open the model selector and select that new profile instead of the built-in Codex provider. Selecting built-in Codex still routes to `api.openai.com`.
+
 ```json
 {
   "agents": {
@@ -205,7 +207,18 @@ Paseo passes those variables through to the Codex app-server process **and** map
           "OPENAI_API_KEY": "sk-...",
           "OPENAI_BASE_URL": "https://custom-relay.example.com"
         },
-        "models": [{ "id": "custom-model", "label": "Custom Model", "isDefault": true }]
+        "models": [
+          {
+            "id": "custom-model",
+            "label": "Custom Model",
+            "isDefault": true,
+            "thinkingOptions": [
+              { "id": "low", "label": "low", "isDefault": true },
+              { "id": "medium", "label": "medium" },
+              { "id": "high", "label": "high" }
+            ]
+          }
+        ]
       }
     }
   }
@@ -231,6 +244,8 @@ requires_openai_auth = false
 - `wire_api` — always `"responses"` (OpenAI Responses API protocol).
 - `env_key` — set to `"OPENAI_API_KEY"` when that env var is present and non-empty, so Codex reads the key from the same env var Paseo passes through.
 - `requires_openai_auth` — forced to `false` when `OPENAI_API_KEY` is provided, so Codex skips its built-in OpenAI login flow.
+
+The endpoint API key is write-only in the app: it is sent only when saving the endpoint and never returned by provider settings, daemon-config reads, or provider snapshots. The saved state indicates whether a key is configured, not its value.
 
 ### Notes
 

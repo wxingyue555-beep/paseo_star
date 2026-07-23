@@ -757,6 +757,55 @@ test("config actions delegate to existing daemon config RPCs", async () => {
   await client.close();
 });
 
+test("provider endpoint profile save uses the write-only namespaced RPC", async () => {
+  const { client, ws } = await connectClient();
+
+  const savePromise = client.providers.saveCodexEndpointProfile(
+    {
+      profileId: "gateway-codex",
+      label: "Gateway Codex",
+      baseUrl: "https://gateway.example/v1",
+      apiKey: "test-secret-must-not-roundtrip",
+      models: [{ id: "gateway-model" }],
+    },
+    { requestId: "save-codex-endpoint" },
+  );
+  expect(parseSentSessionMessage(ws.sent.at(-1))).toMatchObject({
+    type: "provider.codex_endpoint.save.request",
+    requestId: "save-codex-endpoint",
+    profileId: "gateway-codex",
+  });
+  ws.message(
+    sessionMessage({
+      type: "provider.codex_endpoint.save.response",
+      payload: {
+        requestId: "save-codex-endpoint",
+        profile: {
+          id: "gateway-codex",
+          label: "Gateway Codex",
+          baseUrl: "https://gateway.example/v1",
+          models: [{ id: "gateway-model", label: "gateway-model", isDefault: true }],
+          enabled: true,
+          hasApiKey: true,
+        },
+      },
+    }),
+  );
+
+  await expect(savePromise).resolves.toEqual({
+    requestId: "save-codex-endpoint",
+    profile: {
+      id: "gateway-codex",
+      label: "Gateway Codex",
+      baseUrl: "https://gateway.example/v1",
+      models: [{ id: "gateway-model", label: "gateway-model", isDefault: true }],
+      enabled: true,
+      hasApiKey: true,
+    },
+  });
+  await client.close();
+});
+
 test("provider config builders shape existing create-agent config fields", async () => {
   const { client, ws } = await connectClient();
   const provider = client.providers.codex({
