@@ -2062,6 +2062,8 @@ export const ar: TranslationResources = {
         addCustomTitle: "إضافة نموذج مخصص",
         modelId: "الموديل ID",
         modelIdPlaceholder: "على سبيل المثال أوبيناي /gpt-5",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         add: "يضيف",
         adding: "جارٍ الإضافة...",
         failedToSave: "فشل حفظ النموذج",

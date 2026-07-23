@@ -2074,6 +2074,8 @@ export const en = {
         addCustomTitle: "Add custom model",
         modelId: "Model ID",
         modelIdPlaceholder: "e.g. openai/gpt-5",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         add: "Add",
         adding: "Adding...",
         failedToSave: "Failed to save model",

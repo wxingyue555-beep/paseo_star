@@ -2083,6 +2083,8 @@ export const ja: TranslationResources = {
         addCustomTitle: "カスタムモデルを追加",
         modelId: "モデルID",
         modelIdPlaceholder: "例: openai/gpt-5",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         add: "追加",
         adding: "追加中...",
         failedToSave: "モデルの保存に失敗しました",

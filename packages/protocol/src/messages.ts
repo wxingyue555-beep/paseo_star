@@ -98,6 +98,16 @@ const MutableDaemonProviderModelSchema = z
     label: z.string().min(1),
     description: z.string().optional(),
     isDefault: z.boolean().optional(),
+    thinkingOptions: z
+      .array(
+        z.object({
+          id: z.string().min(1),
+          label: z.string().min(1),
+          description: z.string().optional(),
+          isDefault: z.boolean().optional(),
+        }),
+      )
+      .optional(),
   })
   .passthrough();
 

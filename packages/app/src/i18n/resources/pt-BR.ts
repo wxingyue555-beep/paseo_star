@@ -2098,6 +2098,8 @@ export const ptBR: TranslationResources = {
         addCustomTitle: "Adicionar modelo personalizado",
         modelId: "ID do modelo",
         modelIdPlaceholder: "e.g. openai/gpt-5",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         add: "Adicionar",
         adding: "Adicionando...",
         failedToSave: "Falha ao salvar modelo",

@@ -2036,6 +2036,8 @@ export const zhCN: TranslationResources = {
         addCustomTitle: "添加自定义 Model",
         modelId: "Model ID",
         modelIdPlaceholder: "例如 openai/gpt-5",
+        reasoningEfforts: "推理强度",
+        reasoningEffortsPlaceholder: "例如 low, medium, high, xhigh",
         add: "添加",
         adding: "正在添加...",
         failedToSave: "保存 Model 失败",

@@ -2102,6 +2102,8 @@ export const ru: TranslationResources = {
         addCustomTitle: "Добавить пользовательскую модель",
         modelId: "Модель ID",
         modelIdPlaceholder: "например опенай /gpt-5",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         add: "Добавлять",
         adding: "Добавление...",
         failedToSave: "Не удалось сохранить модель.",

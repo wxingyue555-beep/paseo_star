@@ -2113,6 +2113,8 @@ export const es: TranslationResources = {
         addCustomTitle: "Agregar modelo personalizado",
         modelId: "ModeloID",
         modelIdPlaceholder: "p.ej. openai/gpt-5",
+        reasoningEfforts: "Reasoning efforts",
+        reasoningEffortsPlaceholder: "e.g. low, medium, high, xhigh",
         add: "Agregar",
         adding: "Añadiendo...",
         failedToSave: "No se pudo guardar el modelo",
