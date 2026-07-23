@@ -15,6 +15,7 @@ describe("buildCodexEndpointProfile", () => {
       providerId: "ccswitch-work",
       config: {
         extends: "codex",
+        enabled: true,
         label: "CCSwitch Work",
         description: "Codex via CCSwitch Work",
         env: {
@@ -55,5 +56,18 @@ describe("buildCodexEndpointProfile", () => {
         existingProviderIds: new Set(["ccswitch", "ccswitch-2"]),
       }),
     ).toMatchObject({ providerId: "ccswitch-3" });
+  });
+
+  it("preserves an explicit disabled choice", () => {
+    expect(
+      buildCodexEndpointProfile({
+        name: "CCSwitch",
+        baseUrl: "https://ccswitch.example.com/v1",
+        apiKey: "test-key",
+        modelId: "gpt-5.4",
+        enabled: false,
+        existingProviderIds: new Set(),
+      }),
+    ).toMatchObject({ config: { enabled: false } });
   });
 });

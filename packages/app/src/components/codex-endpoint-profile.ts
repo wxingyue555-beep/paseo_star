@@ -5,6 +5,7 @@ export interface CodexEndpointProfileInput {
   baseUrl: string;
   apiKey: string;
   modelId: string;
+  enabled?: boolean;
   existingProviderIds: ReadonlySet<string>;
 }
 
@@ -67,6 +68,7 @@ export function buildCodexEndpointProfile(
     providerId: createProviderId(name, input.existingProviderIds),
     config: {
       extends: "codex",
+      enabled: input.enabled ?? true,
       label: name,
       description: `Codex via ${name}`,
       env: {

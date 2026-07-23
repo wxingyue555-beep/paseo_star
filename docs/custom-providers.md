@@ -193,7 +193,7 @@ Paseo passes those variables through to the Codex app-server process **and** map
 
 ### Setup
 
-In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Enter a profile name, the gateway base URL, its API key, and one model ID. Paseo stores the resulting custom provider in its host config; select that new profile when creating an agent instead of the built-in Codex provider.
+In the app, open **Host Settings → Providers → Add provider**, then choose **Add endpoint** in the Codex-compatible endpoint card. Choose a model preset or enter the gateway's exact model ID, then keep **Enable provider** on unless you intentionally want to hide it. Paseo stores the resulting custom provider in its host config; in a new agent, open the model selector and select that new profile instead of the built-in Codex provider. Selecting built-in Codex still routes to `api.openai.com`.
 
 ```json
 {
