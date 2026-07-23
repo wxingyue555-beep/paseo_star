@@ -170,7 +170,8 @@ function AddCustomModelSubSheet({
     [config?.providers, provider],
   );
   const trimmed = input.trim();
-  const canAdd = trimmed.length > 0 && !additionalModels.some((model) => model.id === trimmed);
+  const existingModel = additionalModels.find((model) => model.id === trimmed);
+  const canAdd = trimmed.length > 0 && (!existingModel || reasoningEfforts.trim().length > 0);
 
   useEffect(() => {
     if (!visible) {
@@ -182,7 +183,7 @@ function AddCustomModelSubSheet({
 
   const handleAdd = useCallback(() => {
     if (!canAdd) return;
-    const thinkingOptions = Array.from(
+    const newThinkingOptions = Array.from(
       new Set(
         reasoningEfforts
           .split(",")
@@ -190,19 +191,36 @@ function AddCustomModelSubSheet({
           .filter(Boolean),
       ),
     ).map((id, index) => (index === 0 ? { id, label: id, isDefault: true } : { id, label: id }));
+    const thinkingOptions = Array.from(
+      new Map(
+        [...(existingModel?.thinkingOptions ?? []), ...newThinkingOptions].map((option) => [
+          option.id,
+          option,
+        ]),
+      ).values(),
+    );
     setError(null);
     setSaving(true);
     void patchConfig({
       providers: {
         [provider]: {
-          additionalModels: [
-            ...additionalModels,
-            {
-              id: trimmed,
-              label: trimmed,
-              ...(thinkingOptions.length > 0 ? { thinkingOptions } : {}),
-            },
-          ],
+          additionalModels: existingModel
+            ? additionalModels.map((model) =>
+                model.id === trimmed
+                  ? {
+                      ...model,
+                      ...(thinkingOptions.length > 0 ? { thinkingOptions } : {}),
+                    }
+                  : model,
+              )
+            : [
+                ...additionalModels,
+                {
+                  id: trimmed,
+                  label: trimmed,
+                  ...(thinkingOptions.length > 0 ? { thinkingOptions } : {}),
+                },
+              ],
         },
       },
     })
@@ -215,6 +233,7 @@ function AddCustomModelSubSheet({
   }, [
     additionalModels,
     canAdd,
+    existingModel,
     onClose,
     patchConfig,
     provider,

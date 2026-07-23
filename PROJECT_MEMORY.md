@@ -9,7 +9,6 @@ Never record API keys, access tokens, or other secrets here.
 - The user wants Paseo to manage third-party providers similarly to OpenCode.
 - AIMAPI/Codex-compatible endpoint used for validation: model `gpt-5.6-terra`.
 - For a Codex-compatible endpoint, the base URL includes `/v1`.
-- The same AIMAPI endpoint accepts Anthropic Messages requests for Claude Code, but its Claude base URL must omit `/v1`: Claude Code appends it itself.
 - Model reasoning efforts belong to a provider's **Add model** workflow, not its **Add provider** workflow. They are stored as model `thinkingOptions` and displayed by the composer beneath the input for the selected model.
 
 ## Local commits to preserve while integrating upstream
