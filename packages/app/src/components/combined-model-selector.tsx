@@ -17,6 +17,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import type { AgentProvider } from "@getpaseo/protocol/agent-types";
 import type { SheetHeader } from "@/components/adaptive-modal-sheet";
 import { useProviderSettingsStore } from "@/stores/provider-settings-store";
+import { resolveInitialSelectorView } from "./combined-model-selector-state";
 import { Button } from "@/components/ui/button";
 import { ICON_SIZE, type Theme } from "@/styles/theme";
 import {
@@ -151,6 +152,8 @@ interface CombinedModelSelectorProps {
   serverId?: string | null;
   desktopPlacement?: ComboboxProps["desktopPlacement"];
   desktopMinWidth?: number;
+  /** Open the selector at the provider list before choosing a model. */
+  openAtProviderList?: boolean;
   /**
    * Render the custom trigger as a full-width form field: the outer Pressable
    * becomes a transparent passthrough that stretches its child edge-to-edge and
@@ -617,6 +620,7 @@ export function CombinedModelSelector({
   serverId = null,
   desktopPlacement,
   desktopMinWidth,
+  openAtProviderList = false,
   triggerFill = false,
 }: CombinedModelSelectorProps) {
   const { t } = useTranslation();
@@ -636,17 +640,14 @@ export function CombinedModelSelector({
   }, [providers]);
 
   const computeInitialView = useCallback((): SelectorView => {
-    if (singleProviderView) return singleProviderView;
-
-    const selectedFavoriteKey = `${selectedProvider}:${selectedModel}`;
-    if (selectedProvider && selectedModel && !favoriteKeys.has(selectedFavoriteKey)) {
-      const provider = providers.find((entry) => entry.id === selectedProvider);
-      if (provider)
-        return { kind: "provider", providerId: provider.id, providerLabel: provider.label };
-    }
-
-    return { kind: "all" };
-  }, [singleProviderView, selectedProvider, selectedModel, favoriteKeys, providers]);
+    return resolveInitialSelectorView({
+      providers,
+      selectedProvider,
+      selectedModel,
+      favoriteKeys,
+      openAtProviderList,
+    });
+  }, [openAtProviderList, selectedProvider, selectedModel, favoriteKeys, providers]);
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
